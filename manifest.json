@@ -2,11 +2,23 @@
   "manifest_version": 3,
   "name": "X 未回关检测",
   "description": "读取 X 关注列表，筛选列表中未显示回关标记的用户。",
-  "version": "1.0.3",
+  "version": "1.0.6",
+  "icons": {
+    "16": "assets/icon16.png",
+    "32": "assets/icon32.png",
+    "48": "assets/icon48.png",
+    "128": "assets/icon128.png"
+  },
   "permissions": ["activeTab", "scripting", "sidePanel", "storage", "tabs"],
   "host_permissions": ["https://x.com/*", "https://twitter.com/*"],
   "action": {
     "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "assets/icon16.png",
+      "32": "assets/icon32.png",
+      "48": "assets/icon48.png",
+      "128": "assets/icon128.png"
+    },
     "default_title": "X 未回关检测"
   },
   "background": {

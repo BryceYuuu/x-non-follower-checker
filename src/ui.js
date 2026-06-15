@@ -27,6 +27,7 @@ async function init() {
 
 function bindEvents() {
   els.start?.addEventListener("click", async () => {
+    await send({ type: "CLEAR_RESULTS" });
     await send({
       type: "START_SCAN",
       account: els.accountInput.value.trim()
@@ -34,7 +35,11 @@ function bindEvents() {
   });
 
   els.cancel?.addEventListener("click", async () => {
-    await send({ type: "CANCEL_JOB" });
+    const busy = ["detecting", "scanning", "unfollowing"].includes(currentState?.status);
+    await send({ type: busy ? "CANCEL_JOB" : "RESET_STATE" });
+    if (!busy) {
+      els.accountInput.value = "";
+    }
   });
 
   els.openPanel?.addEventListener("click", async () => {
@@ -77,7 +82,8 @@ function render(state) {
   els.resultCount.textContent = formatNumber(state.nonFollowers?.length || 0);
 
   els.start.disabled = busy;
-  els.cancel.disabled = !busy;
+  els.cancel.disabled = !busy && !canReset(state);
+  els.cancel.textContent = busy ? "取消" : "重置";
   els.batchUnfollow.disabled = busy || !(state.nonFollowers?.length);
 
   renderList(state.nonFollowers || [], busy);
@@ -176,4 +182,12 @@ function send(message) {
 
 function formatNumber(value) {
   return new Intl.NumberFormat("zh-CN").format(value || 0);
+}
+
+function canReset(state) {
+  return state.status !== "idle" ||
+    Boolean(state.account) ||
+    Boolean(state.followingCount) ||
+    Boolean(state.scannedCount) ||
+    Boolean(state.nonFollowers?.length);
 }

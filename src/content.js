@@ -31,7 +31,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
     if (message?.type === "SCAN_FOLLOWING_PAGE") {
       scanCancelled = false;
-      const users = await scanFollowingPage();
+      const users = await scanFollowingPage(message.account);
       sendResponse({ ok: true, users });
       return;
     }
@@ -56,7 +56,8 @@ function detectCurrentAccount() {
   return findHandleInText(buttonText);
 }
 
-async function scanFollowingPage() {
+async function scanFollowingPage(account) {
+  ensureFollowingRoute(account);
   await waitForElement(() => getPrimaryColumn() || document.querySelector('[data-testid="UserCell"]'), 30_000);
 
   const users = new Map();
@@ -98,6 +99,16 @@ async function scanFollowingPage() {
     return [...users.values()];
   } finally {
     window.scrollTo({ top: originalScrollY, behavior: "auto" });
+  }
+}
+
+function ensureFollowingRoute(account) {
+  const expected = normalizeHandle(account).toLowerCase();
+  const parts = location.pathname.split("/").filter(Boolean);
+  const actual = normalizeHandle(parts[0]).toLowerCase();
+  const section = parts[1]?.toLowerCase();
+  if (!expected || actual !== expected || section !== "following") {
+    throw new Error("当前页面不是目标账号的 following 列表，请重新开始检测。");
   }
 }
 
@@ -240,11 +251,7 @@ function findFollowingButtonInCell(cell) {
   const testIdButton = cell.querySelector('button[data-testid$="-unfollow"]');
   if (testIdButton) return testIdButton;
 
-  return [...cell.querySelectorAll('button[role="button"], div[role="button"]')]
-    .find((button) => {
-      const label = cleanText(`${button.getAttribute("aria-label") || ""} ${button.textContent || ""}`);
-      return /following|正在关注|已关注/i.test(label) && !/followers|关注者/.test(label);
-    }) || null;
+  return null;
 }
 
 function findConfirmUnfollowButton() {

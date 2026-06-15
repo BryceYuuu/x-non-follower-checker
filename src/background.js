@@ -56,8 +56,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return;
     }
 
+    if (message?.type === "CLEAR_RESULTS") {
+      clearResults();
+      sendResponse({ ok: true });
+      return;
+    }
+
     if (message?.type === "CANCEL_JOB") {
       cancelCurrentJob();
+      sendResponse({ ok: true });
+      return;
+    }
+
+    if (message?.type === "RESET_STATE") {
+      resetState();
       sendResponse({ ok: true });
       return;
     }
@@ -264,6 +276,22 @@ function setState(partial) {
   };
   chrome.storage.session?.set({ state }).catch(() => {});
   chrome.runtime.sendMessage({ type: "STATE_CHANGED", state }).catch(() => {});
+}
+
+function resetState() {
+  cancelCurrentJob();
+  setState({ ...DEFAULT_STATE });
+}
+
+function clearResults() {
+  setState({
+    status: "idle",
+    message: "已清空结果，可以重新开始检测",
+    followingCount: 0,
+    scannedCount: 0,
+    nonFollowers: [],
+    unfollowedCount: 0
+  });
 }
 
 function handleDetachedError(error) {
