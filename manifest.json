@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "X 未回关检测",
+  "description": "读取 X 关注列表，筛选列表中未显示回关标记的用户。",
+  "version": "1.0.3",
+  "permissions": ["activeTab", "scripting", "sidePanel", "storage", "tabs"],
+  "host_permissions": ["https://x.com/*", "https://twitter.com/*"],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "X 未回关检测"
+  },
+  "background": {
+    "service_worker": "src/background.js"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; img-src 'self' data: https://pbs.twimg.com https://*.twimg.com https://*.x.com https://*.twitter.com;"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://x.com/*", "https://twitter.com/*"],
+      "js": ["src/content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "side_panel": {
+    "default_path": "panel/panel.html"
+  }
+}
