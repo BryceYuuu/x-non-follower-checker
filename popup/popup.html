@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>X 未回关检测</title>
+    <link rel="stylesheet" href="../styles/ui.css">
+  </head>
+  <body class="popup">
+    <main class="app" data-ui-root>
+      <header class="topbar">
+        <div>
+          <h1>X 未回关检测</h1>
+          <p data-status>打开 X 后点击开始检测</p>
+        </div>
+        <button class="icon-button" type="button" data-open-panel title="打开侧边面板" aria-label="打开侧边面板">↗</button>
+      </header>
+
+      <section class="controls">
+        <label class="field">
+          <span>@用户名</span>
+          <input data-account-input type="text" inputmode="text" autocomplete="off" placeholder="自动识别，可留空">
+        </label>
+        <div class="actions">
+          <button class="primary" type="button" data-start>开始检测</button>
+          <button type="button" data-cancel>取消</button>
+        </div>
+      </section>
+
+      <section class="stats">
+        <div><strong data-following-count>0</strong><span>关注</span></div>
+        <div><strong data-scanned-count>0</strong><span>已扫描</span></div>
+        <div><strong data-result-count>0</strong><span>未回关</span></div>
+      </section>
+
+      <section class="result-header">
+        <h2>未回关用户</h2>
+        <button class="danger" type="button" data-batch-unfollow>一键取关</button>
+      </section>
+
+      <div class="list" data-list></div>
+    </main>
+    <script src="../src/ui.js"></script>
+  </body>
+</html>
