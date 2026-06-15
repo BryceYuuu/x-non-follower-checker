@@ -1,5 +1,7 @@
 # X 未回关检测 Chrome 插件
 
+![X 未回关检测](store-assets/marquee-promo-1400x560.png)
+
 纯前端 Chrome MV3 插件，用于在 X（原 Twitter）网页上读取当前账号的关注列表，筛选关注列表中没有显示 `Follows you / 关注了你` 标记的用户。
 
 X 未回关检测是一款轻量级 Chrome 浏览器插件，适配新版 X（原 Twitter）网页。插件可以扫描当前登录账号的关注列表，识别“我已关注对方，但对方未回关我”的用户，并在弹窗或侧边面板中展示结果。
@@ -26,11 +28,25 @@ Keywords: X non follower checker, Twitter non follower checker, X unfollow check
 │   └── popup.html
 ├── panel/
 │   └── panel.html
+├── assets/
+│   ├── icon16.png
+│   ├── icon32.png
+│   ├── icon48.png
+│   └── icon128.png
+├── store-assets/
+│   ├── marquee-promo-1400x560.png
+│   ├── small-promo-440x280.png
+│   ├── screenshot-results-1280x800.png
+│   ├── screenshot-empty-1280x800.png
+│   └── screenshot-confirm-1280x800.png
+├── docs/
+│   └── privacy.html
 ├── src/
 │   ├── background.js
 │   ├── content.js
 │   └── ui.js
 ├── scripts/
+│   ├── package-extension.js
 │   └── validate-extension.js
 └── styles/
     └── ui.css
@@ -61,6 +77,33 @@ node scripts/validate-extension.js
 ```
 
 该命令会检查 `manifest.json`、HTML 引用路径和所有 JS 文件语法。
+
+## 本地打包
+
+```bash
+node scripts/package-extension.js
+```
+
+打包产物会输出到 `dist/`，该目录不会提交到 GitHub。
+
+## 商店素材
+
+| 素材 | 文件 |
+| --- | --- |
+| Store icon | `assets/icon128.png` |
+| Small promo tile | `store-assets/small-promo-440x280.png` |
+| Marquee promo tile | `store-assets/marquee-promo-1400x560.png` |
+| Screenshot - results | `store-assets/screenshot-results-1280x800.png` |
+| Screenshot - empty | `store-assets/screenshot-empty-1280x800.png` |
+| Screenshot - confirmation | `store-assets/screenshot-confirm-1280x800.png` |
+
+## Screenshots
+
+![扫描结果](store-assets/screenshot-results-1280x800.png)
+
+![轻量界面](store-assets/screenshot-empty-1280x800.png)
+
+![取关确认](store-assets/screenshot-confirm-1280x800.png)
 
 ## 实现说明
 

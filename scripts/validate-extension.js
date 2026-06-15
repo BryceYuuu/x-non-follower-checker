@@ -26,6 +26,8 @@ if (manifest.manifest_version !== 3) {
 const referencedFiles = new Set([
   manifest.background?.service_worker,
   manifest.action?.default_popup,
+  ...Object.values(manifest.icons || {}),
+  ...Object.values(manifest.action?.default_icon || {}),
   manifest.side_panel?.default_path,
   ...(manifest.content_scripts || []).flatMap((script) => script.js || []),
   ...(manifest.content_scripts || []).flatMap((script) => script.css || [])
