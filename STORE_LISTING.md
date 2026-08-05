@@ -2,7 +2,7 @@
 
 ## Title
 
-X 未回关检测 / X Non-Follower Checker
+X未回关检测 / X Non-Follower Checker
 
 ## Summary
 
@@ -10,7 +10,7 @@ X 未回关检测 / X Non-Follower Checker
 
 ## Description
 
-X 未回关检测是一款轻量级 Chrome 浏览器插件，适配新版 X（原 Twitter）网页。插件会扫描当前登录账号的关注列表，识别“我已关注对方，但对方未回关我”的用户，并在弹窗或侧边面板中展示结果。
+X未回关检测是一款轻量级 Chrome 浏览器插件，适配新版 X（原 Twitter）网页。插件会扫描当前登录账号的关注列表，识别“我已关注对方，但对方未回关我”的用户，并在弹窗或侧边面板中展示结果。
 
 主要功能：
 

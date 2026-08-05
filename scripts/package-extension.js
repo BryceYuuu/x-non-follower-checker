@@ -13,9 +13,7 @@ if (fs.existsSync(output)) fs.unlinkSync(output);
 
 const files = [
   "manifest.json",
-  "README.md",
   "popup/popup.html",
-  "panel/panel.html",
   "src/background.js",
   "src/content.js",
   "src/ui.js",

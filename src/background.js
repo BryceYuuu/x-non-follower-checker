@@ -13,12 +13,9 @@ const DEFAULT_STATE = {
 
 let state = { ...DEFAULT_STATE };
 let currentJob = null;
+let resultsWindowId = null;
 
 const stateReady = restoreState();
-
-chrome.runtime.onInstalled.addListener(() => {
-  chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: false }).catch(() => {});
-});
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   (async () => {
@@ -41,7 +38,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 
     if (message?.type === "OPEN_PANEL") {
-      await openSidePanel(sender);
+      await openPagePanel(sender);
       sendResponse({ ok: true });
       return;
     }
@@ -75,7 +72,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 
     if (message?.type === "OPEN_PROFILE") {
-      await openProfile(message.handle);
+      await openProfile(message.handle, sender);
       sendResponse({ ok: true });
       return;
     }
@@ -98,9 +95,42 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   return true;
 });
 
-async function openSidePanel(sender) {
-  const windowId = sender?.tab?.windowId || (await chrome.windows.getCurrent()).id;
-  await chrome.sidePanel.open({ windowId });
+async function openPagePanel(sender) {
+  const tab = sender?.tab?.id ? sender.tab : await getActiveXTab();
+  await showResultsOnSourceTab(tab.id);
+}
+
+async function showResultsOnSourceTab(tabId) {
+  try {
+    const response = await sendToTabWithInjection(tabId, {
+      type: "SHOW_FLOATING_RESULTS",
+      state
+    }, 5000);
+    if (response?.ok) return;
+  } catch {
+    // Fall back to a standalone extension window when the page cannot receive the overlay.
+  }
+  await openOrFocusResultsWindow();
+}
+
+async function openOrFocusResultsWindow() {
+  if (resultsWindowId) {
+    try {
+      await chrome.windows.update(resultsWindowId, { focused: true });
+      return;
+    } catch {
+      resultsWindowId = null;
+    }
+  }
+
+  const created = await chrome.windows.create({
+    url: chrome.runtime.getURL("popup/popup.html"),
+    type: "popup",
+    width: 430,
+    height: 720,
+    focused: true
+  });
+  resultsWindowId = created?.id || null;
 }
 
 async function startScan(inputAccount) {
@@ -118,11 +148,19 @@ async function startScan(inputAccount) {
 
     const activeTab = await getActiveXTab();
     job.tabId = activeTab.id;
+    await showResultsOnSourceTab(activeTab.id);
 
     const account = normalizeHandle(inputAccount) || (await detectAccountFromTab(activeTab.id));
     if (!account) {
       throw new Error("未能识别当前登录账号。请在输入框填写你的 X 用户名后重试。");
     }
+
+    setState({
+      account,
+      status: "scanning",
+      message: `准备扫描 @${account} 的关注列表...`
+    });
+    await showResultsOnSourceTab(activeTab.id);
 
     ensureNotCancelled(job);
     const following = await scanFollowingInTab(activeTab.id, account, job);
@@ -130,8 +168,7 @@ async function startScan(inputAccount) {
 
     const nonFollowers = uniqueUsers(following)
       .filter((user) => user.isFollowing && !user.followsYou)
-      .map((user) => ({ ...user, verified: true }))
-      .sort((a, b) => a.handle.localeCompare(b.handle));
+      .map((user) => ({ ...user, verified: true }));
 
     setState({
       status: "done",
@@ -141,12 +178,20 @@ async function startScan(inputAccount) {
       nonFollowers,
       message: `检测完成：扫描 ${following.length} 个关注，发现 ${nonFollowers.length} 个未回关`
     });
+
+    await showResultsOnSourceTab(activeTab.id);
   } catch (error) {
     if (error.name === "AbortError") {
       setState({ status: "idle", message: "任务已取消" });
+      if (job.tabId) await showResultsOnSourceTab(job.tabId);
       return;
     }
     setState({ status: "error", message: error.message || String(error) });
+    if (job.tabId) {
+      await showResultsOnSourceTab(job.tabId);
+    } else {
+      await openOrFocusResultsWindow();
+    }
   } finally {
     if (currentJob === job) currentJob = null;
   }
@@ -165,6 +210,7 @@ async function scanFollowingInTab(tabId, account, job) {
     status: "scanning",
     message: `正在打开 @${account} 的关注列表...`
   });
+  await showResultsOnSourceTab(tabId);
 
   const tab = await chrome.tabs.get(tabId);
   if (!samePath(tab.url, targetUrl)) {
@@ -173,12 +219,13 @@ async function scanFollowingInTab(tabId, account, job) {
   }
 
   ensureNotCancelled(job);
-  await delay(1500, job);
+  await delay(900, job);
 
   setState({
     status: "scanning",
     message: "正在扫描当前关注列表页面..."
   });
+  await showResultsOnSourceTab(tabId);
 
   const response = await sendToTabWithInjection(tabId, {
     type: "SCAN_FOLLOWING_PAGE",
@@ -199,11 +246,16 @@ async function getActiveXTab() {
   return tab;
 }
 
-async function openProfile(handle) {
+async function openProfile(handle, sender) {
   const normalized = normalizeHandle(handle);
   if (!normalized) return;
-  const tab = await getActiveXTab();
-  await chrome.tabs.update(tab.id, { url: `${X_ORIGIN}/${normalized}`, active: true });
+  const sourceTab = sender?.tab?.id ? sender.tab : await getActiveXTab();
+  await chrome.tabs.create({
+    active: false,
+    openerTabId: sourceTab.id,
+    url: `${X_ORIGIN}/${normalized}`,
+    windowId: sourceTab.windowId
+  });
 }
 
 async function batchUnfollow() {
@@ -257,6 +309,8 @@ async function batchUnfollow() {
       nonFollowers: remaining,
       message: `取关完成：成功 ${unfollowed.size} 个${failedCount ? `，${failedCount} 个未处理` : ""}`
     });
+
+    await showResultsOnSourceTab(tab.id);
   } catch (error) {
     if (error.name === "AbortError") {
       setState({ status: "done", message: "取关任务已取消" });
@@ -276,6 +330,7 @@ function setState(partial) {
   };
   chrome.storage.session?.set({ state }).catch(() => {});
   chrome.runtime.sendMessage({ type: "STATE_CHANGED", state }).catch(() => {});
+  notifyContentPanels(state);
 }
 
 function resetState() {
@@ -296,6 +351,20 @@ function clearResults() {
 
 function handleDetachedError(error) {
   setState({ status: "error", message: error.message || String(error) });
+}
+
+function notifyContentPanels(nextState) {
+  chrome.tabs.query({
+    url: ["https://x.com/*", "https://*.x.com/*", "https://twitter.com/*", "https://*.twitter.com/*"]
+  }).then((tabs) => {
+    for (const tab of tabs) {
+      if (!tab.id) continue;
+      chrome.tabs.sendMessage(tab.id, {
+        type: "UPDATE_FLOATING_RESULTS",
+        state: nextState
+      }).catch(() => {});
+    }
+  }).catch(() => {});
 }
 
 function updateScanProgress(message) {
@@ -457,15 +526,18 @@ function delay(ms, job) {
 
 function uniqueUsers(users) {
   const map = new Map();
+  let fallbackOrder = 0;
   for (const user of users || []) {
     const handle = normalizeHandle(user?.handle);
     if (!handle || map.has(handle.toLowerCase())) continue;
+    fallbackOrder += 1;
     map.set(handle.toLowerCase(), {
       handle,
       name: user.name || handle,
       avatar: user.avatar || "",
       followsYou: Boolean(user.followsYou),
-      isFollowing: Boolean(user.isFollowing)
+      isFollowing: Boolean(user.isFollowing),
+      order: Number.isFinite(user.order) ? user.order : fallbackOrder
     });
   }
   return [...map.values()];

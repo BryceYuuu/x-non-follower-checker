@@ -213,7 +213,7 @@ function renderPromoHtml(item) {
 <body>
   <main class="promo">
     <section>
-      <h1>X 未回关检测</h1>
+      <h1>X未回关检测</h1>
       <p>扫描关注列表，找出未回关用户。</p>
       <span class="pill">本地处理</span>
     </section>
@@ -302,7 +302,7 @@ function renderMarqueeHtml(item) {
   <main class="marquee">
     <section>
       <div class="eyebrow">Chrome Extension for X / Twitter</div>
-      <h1>X 未回关检测</h1>
+      <h1>X未回关检测</h1>
       <p>扫描关注列表，找出未回关用户。所有数据本地处理，支持查看主页和确认后一键取关。</p>
       <div class="features">
         <span class="pill">本地处理</span>
