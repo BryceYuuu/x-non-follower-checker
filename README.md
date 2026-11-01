@@ -117,3 +117,12 @@ node scripts/package-extension.js
 - 如果 X 页面在插件安装前已经打开，后台会自动补注入页面脚本，不需要手动刷新。
 
 X 网页 DOM 会变化，如 X 调整用户卡片或按钮结构，可能需要更新 `src/content.js` 中的选择器。
+
+## Sponsor / 赞助支持
+
+If this project helps you, consider sponsoring to support ongoing maintenance.
+
+如果这个项目对你有帮助，欢迎赞助支持，让我能持续维护和更新。
+
+- [GitHub Sponsors](https://github.com/sponsors/BryceYuuu): card / PayPal
+- [爱发电 Afdian](https://afdian.com/a/bryce): 微信 / 支付宝 (WeChat Pay / Alipay)
