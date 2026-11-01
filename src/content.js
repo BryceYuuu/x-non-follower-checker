@@ -14,19 +14,27 @@ const ROUTE_NAMES = new Set([
   "jobs"
 ]);
 
-let scanCancelled = false;
-let floatingPanel = null;
-let floatingState = null;
-let floatingListScrollTop = 0;
-let floatingPanelPosition = null;
-const floatingFilters = {
-  query: "",
-  sort: "following"
-};
-let lastScanReportAt = 0;
-let lastScanReportCount = 0;
+const BUSY_STATUSES = new Set(["detecting", "scanning", "unfollowing"]);
 
-const FLOATING_PANEL_POSITION_KEY = "xUnfollowDetectorFloatingPanelPosition";
+// Text fallbacks only matter if X drops the data-testid marker; the testid is language independent.
+const FOLLOWS_YOU_MARKERS = [
+  "follows you",
+  "关注了你",
+  "關注了你",
+  "跟隨你",
+  "フォローされています",
+  "나를 팔로우합니다",
+  "te sigue",
+  "vous suit",
+  "folgt dir",
+  "segue você",
+  "ti segue",
+  "читает вас"
+];
+
+let jobCancelled = false;
+let floating = null;
+let floatingDismissedWhileBusy = false;
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   (async () => {
@@ -36,26 +44,31 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     }
 
     if (message?.type === "CANCEL_SCAN") {
-      scanCancelled = true;
+      jobCancelled = true;
       sendResponse({ ok: true });
       return;
     }
 
-    if (message?.type === "SCAN_FOLLOWING_PAGE") {
-      scanCancelled = false;
-      const users = await scanFollowingPage(message.account);
-      sendResponse({ ok: true, users });
+    if (message?.type === "PREPARE_FOLLOWING") {
+      jobCancelled = false;
+      sendResponse({ ok: true, ...(await prepareFollowingRoute(message.account)) });
       return;
     }
 
-    if (message?.type === "BATCH_UNFOLLOW_ON_FOLLOWING_PAGE") {
-      scanCancelled = false;
-      const result = await batchUnfollowOnFollowingPage(message.handles || []);
-      sendResponse({ ok: true, ...result });
+    if (message?.type === "SCAN_FOLLOWING_PAGE") {
+      jobCancelled = false;
+      sendResponse({ ok: true, ...(await scanFollowingPage(message.account)) });
+      return;
+    }
+
+    if (message?.type === "UNFOLLOW_ON_FOLLOWING_PAGE") {
+      jobCancelled = false;
+      sendResponse({ ok: true, ...(await unfollowOnFollowingPage(message)) });
       return;
     }
 
     if (message?.type === "SHOW_FLOATING_RESULTS") {
+      floatingDismissedWhileBusy = false;
       showFloatingResults(message.state || await getCurrentState());
       sendResponse({ ok: true });
       return;
@@ -63,9 +76,10 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
     if (message?.type === "UPDATE_FLOATING_RESULTS") {
       const nextState = message.state || await getCurrentState();
-      if (floatingPanel) {
-        renderFloatingResults(nextState);
-      } else if (shouldAutoShowFloatingPanel(nextState)) {
+      if (!BUSY_STATUSES.has(nextState?.status)) floatingDismissedWhileBusy = false;
+      if (floating) {
+        floating.view.render(nextState);
+      } else if (BUSY_STATUSES.has(nextState?.status) && !floatingDismissedWhileBusy) {
         showFloatingResults(nextState);
       }
       sendResponse({ ok: true });
@@ -83,7 +97,7 @@ restoreFloatingPanelIfNeeded();
 
 async function restoreFloatingPanelIfNeeded() {
   const state = await getCurrentState();
-  if (shouldRestoreFloatingPanel(state)) showFloatingResults(state);
+  if (BUSY_STATUSES.has(state?.status)) showFloatingResults(state);
 }
 
 function detectCurrentAccount() {
@@ -92,973 +106,528 @@ function detectCurrentAccount() {
   return findHandleInText(buttonText);
 }
 
-function shouldRestoreFloatingPanel(state) {
-  return ["detecting", "scanning", "unfollowing"].includes(state?.status);
-}
-
-function shouldAutoShowFloatingPanel(state) {
-  return ["detecting", "scanning", "unfollowing"].includes(state?.status);
-}
+// ---------- Floating panel ----------
 
 function showFloatingResults(state) {
   ensureFloatingPanel();
-  renderFloatingResults(state || createEmptyFloatingState());
+  floating.view.setTheme(detectXTheme());
+  if (state) floating.view.render(state);
 }
 
 function ensureFloatingPanel() {
-  if (floatingPanel?.host?.isConnected) return floatingPanel;
+  if (floating?.host?.isConnected) return floating;
 
   const host = document.createElement("div");
   host.id = "x-unfollow-detector-floating-panel";
+  host.style.cssText = "all: initial; position: fixed; top: 0; left: 0; width: 0; height: 0; z-index: 2147483646;";
   const shadow = host.attachShadow({ mode: "open" });
-  shadow.innerHTML = `
-    <style>
-      :host {
-        all: initial;
-        color-scheme: light;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      }
-
-      * {
-        box-sizing: border-box;
-      }
-
-      .panel {
-        position: fixed;
-        top: 72px;
-        right: 18px;
-        z-index: 2147483647;
-        display: grid;
-        width: min(410px, calc(100vw - 24px));
-        max-height: calc(100vh - 92px);
-        overflow: hidden;
-        border: 1px solid #d7dce2;
-        border-radius: 10px;
-        background: #f7f8fa;
-        box-shadow: 0 18px 50px rgba(15, 20, 25, 0.22);
-        color: #16181c;
-      }
-
-      .panel.dragging {
-        user-select: none;
-      }
-
-      .header,
-      .result-bar,
-      .row-actions {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-      }
-
-      .header {
-        cursor: move;
-        padding: 14px 14px 10px;
-        user-select: none;
-      }
-
-      .header button {
-        cursor: pointer;
-      }
-
-      h2,
-      p {
-        margin: 0;
-      }
-
-      h2 {
-        font-size: 17px;
-        line-height: 1.2;
-      }
-
-      .status {
-        margin-top: 4px;
-        color: #536471;
-        font-size: 12px;
-        line-height: 1.35;
-      }
-
-      button,
-      input,
-      select {
-        font: inherit;
-      }
-
-      button,
-      select {
-        min-height: 34px;
-        border: 1px solid #d7dce2;
-        border-radius: 7px;
-        background: #ffffff;
-        color: #16181c;
-      }
-
-      button {
-        cursor: pointer;
-        padding: 0 10px;
-      }
-
-      button:hover:not(:disabled),
-      select:hover {
-        background: #f1f3f5;
-      }
-
-      .primary {
-        border-color: #16181c;
-        background: #16181c;
-        color: #ffffff;
-      }
-
-      .primary:hover:not(:disabled) {
-        background: #2f3336;
-      }
-
-      button:disabled {
-        cursor: not-allowed;
-        opacity: 0.52;
-      }
-
-      .icon {
-        width: 34px;
-        padding: 0;
-        font-size: 20px;
-        line-height: 1;
-      }
-
-      .danger {
-        border-color: #f4c7c7;
-        color: #b42318;
-      }
-
-      .danger:hover:not(:disabled) {
-        background: #fff1f1;
-      }
-
-      .content {
-        display: grid;
-        gap: 10px;
-        min-height: 0;
-        padding: 0 14px 14px;
-      }
-
-      .stats {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 8px;
-      }
-
-      .stat {
-        border: 1px solid #e3e7eb;
-        border-radius: 8px;
-        background: #ffffff;
-        padding: 9px;
-      }
-
-      .stat strong,
-      .stat span {
-        display: block;
-      }
-
-      .stat strong {
-        font-size: 18px;
-        line-height: 1;
-      }
-
-      .stat span {
-        margin-top: 4px;
-        color: #536471;
-        font-size: 12px;
-      }
-
-      .filters {
-        display: grid;
-        gap: 8px;
-      }
-
-      .scan-controls {
-        display: grid;
-        gap: 8px;
-        border: 1px solid #e3e7eb;
-        border-radius: 8px;
-        background: #ffffff;
-        padding: 10px;
-      }
-
-      .field {
-        display: grid;
-        gap: 5px;
-        color: #536471;
-        font-size: 12px;
-      }
-
-      .control-actions {
-        display: grid;
-        grid-template-columns: 1fr auto;
-        gap: 8px;
-      }
-
-      input,
-      select {
-        width: 100%;
-        outline: none;
-      }
-
-      input {
-        min-height: 36px;
-        border: 1px solid #cfd6dd;
-        border-radius: 7px;
-        background: #ffffff;
-        color: #16181c;
-        padding: 0 10px;
-      }
-
-      input:focus,
-      select:focus {
-        border-color: #1d9bf0;
-        box-shadow: 0 0 0 2px rgba(29, 155, 240, 0.18);
-      }
-
-      select {
-        padding: 0 8px;
-      }
-
-      .result-bar strong {
-        font-size: 14px;
-      }
-
-      .list {
-        display: grid;
-        align-content: start;
-        gap: 8px;
-        min-height: 150px;
-        max-height: min(430px, calc(100vh - 390px));
-        overflow: auto;
-        padding-right: 2px;
-      }
-
-      .row {
-        display: grid;
-        grid-template-columns: 42px minmax(0, 1fr) auto;
-        align-items: center;
-        gap: 10px;
-        border: 1px solid #e3e7eb;
-        border-radius: 8px;
-        background: #ffffff;
-        padding: 10px;
-      }
-
-      .avatar {
-        display: grid;
-        width: 42px;
-        height: 42px;
-        place-items: center;
-        overflow: hidden;
-        border: 0;
-        border-radius: 50%;
-        background: #e8edf2;
-        color: #536471;
-        font-weight: 700;
-        padding: 0;
-      }
-
-      .avatar img {
-        display: block;
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-      }
-
-      .meta {
-        min-width: 0;
-      }
-
-      .profile-name,
-      .handle,
-      .badge {
-        max-width: 100%;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .profile-name {
-        display: block;
-        border: 0;
-        background: transparent;
-        min-height: 0;
-        padding: 0;
-        color: #16181c;
-        font-weight: 700;
-        text-align: left;
-      }
-
-      .handle {
-        margin-top: 2px;
-        color: #536471;
-        font-size: 12px;
-      }
-
-      .badges {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 4px;
-        margin-top: 5px;
-      }
-
-      .badge {
-        border-radius: 999px;
-        background: #eef1f4;
-        color: #536471;
-        font-size: 11px;
-        line-height: 1;
-        padding: 4px 7px;
-      }
-
-      .badge.warning {
-        background: #fff4de;
-        color: #8a5a00;
-      }
-
-      .empty,
-      .hint {
-        color: #536471;
-        font-size: 12px;
-        line-height: 1.45;
-      }
-
-      .empty {
-        border: 1px dashed #cfd6dd;
-        border-radius: 8px;
-        padding: 24px 12px;
-        text-align: center;
-      }
-
-      @media (max-width: 520px) {
-        .panel {
-          top: 56px;
-          right: 8px;
-          left: 8px;
-          width: auto;
-          max-height: calc(100vh - 70px);
-        }
-
-      }
-    </style>
-    <aside class="panel" aria-label="X未回关检测结果">
-      <header class="header" data-floating-drag title="拖动移动，双击还原位置">
-        <div>
-          <h2>X未回关检测</h2>
-          <p class="status" data-floating-status></p>
-        </div>
-        <button class="icon" type="button" data-floating-close aria-label="关闭">×</button>
-      </header>
-      <section class="content">
-        <div class="stats">
-          <div class="stat"><strong data-floating-following>0</strong><span>关注</span></div>
-          <div class="stat"><strong data-floating-scanned>0</strong><span>已扫描</span></div>
-          <div class="stat"><strong data-floating-total>0</strong><span>未回关</span></div>
-        </div>
-        <div class="scan-controls">
-          <label class="field">
-            <span>@用户名</span>
-            <input data-floating-account type="text" inputmode="text" autocomplete="off" placeholder="自动识别，可留空">
-          </label>
-          <div class="control-actions">
-            <button class="primary" type="button" data-floating-start>开始检测</button>
-            <button type="button" data-floating-reset>重置</button>
-          </div>
-        </div>
-        <div class="filters">
-          <input data-floating-query type="search" placeholder="搜索用户名或 @handle">
-          <select data-floating-sort aria-label="排序">
-            <option value="following">列表中用户顺序</option>
-            <option value="handle">A-Z 用户名排序</option>
-          </select>
-        </div>
-        <div class="result-bar">
-          <strong data-floating-count>未回关用户</strong>
-          <button class="danger" type="button" data-floating-batch>一键取关</button>
-        </div>
-        <div class="list" data-floating-list></div>
-      </section>
-    </aside>
-  `;
-
   document.documentElement.append(host);
-  floatingPanel = { host, shadow };
-  bindFloatingEvents();
-  return floatingPanel;
-}
 
-function bindFloatingEvents() {
-  const panel = floatingPanel.shadow.querySelector(".panel");
-  const dragHandle = floatingPanel.shadow.querySelector("[data-floating-drag]");
-  const close = floatingPanel.shadow.querySelector("[data-floating-close]");
-  const account = floatingPanel.shadow.querySelector("[data-floating-account]");
-  const start = floatingPanel.shadow.querySelector("[data-floating-start]");
-  const reset = floatingPanel.shadow.querySelector("[data-floating-reset]");
-  const query = floatingPanel.shadow.querySelector("[data-floating-query]");
-  const sort = floatingPanel.shadow.querySelector("[data-floating-sort]");
-  const list = floatingPanel.shadow.querySelector("[data-floating-list]");
-  const batch = floatingPanel.shadow.querySelector("[data-floating-batch]");
-
-  bindFloatingDrag(panel, dragHandle);
-  restoreFloatingPanelPosition(panel);
-
-  close.addEventListener("click", () => {
-    floatingPanel.host.remove();
-    floatingPanel = null;
-  });
-
-  start.addEventListener("click", async () => {
-    await sendRuntimeMessage({ type: "CLEAR_RESULTS" });
-    await sendRuntimeMessage({
-      type: "START_SCAN",
-      account: account.value.trim()
-    });
-  });
-
-  reset.addEventListener("click", async () => {
-    await sendRuntimeMessage({ type: "RESET_STATE" });
-  });
-
-  query.addEventListener("input", () => {
-    floatingFilters.query = query.value.trim();
-    renderFloatingResults(floatingState);
-  });
-
-  sort.addEventListener("change", () => {
-    floatingFilters.sort = sort.value;
-    renderFloatingResults(floatingState);
-  });
-
-  list.addEventListener("scroll", () => {
-    floatingListScrollTop = list.scrollTop;
-  });
-
-  list.addEventListener("click", async (event) => {
-    const trigger = event.target.closest("[data-open-floating-profile]");
-    if (!trigger) return;
-    floatingListScrollTop = list.scrollTop;
-    await sendRuntimeMessage({
-      type: "OPEN_PROFILE",
-      handle: trigger.dataset.handle
-    });
-  });
-
-  batch.addEventListener("click", async () => {
-    const busy = ["detecting", "scanning", "unfollowing"].includes(floatingState?.status);
-    if (busy) {
-      await sendRuntimeMessage({ type: "CANCEL_JOB" });
-      return;
+  const view = globalThis.XNFPanelView.mount(shadow, {
+    mode: "floating",
+    onClose: () => {
+      floating?.view.destroy();
+      floating?.host.remove();
+      floating = null;
+      getCurrentState().then((state) => {
+        floatingDismissedWhileBusy = BUSY_STATUSES.has(state?.status);
+      });
     }
-
-    const count = floatingState?.nonFollowers?.length || 0;
-    if (!count) return;
-    const ok = confirm(
-      `确认一键取关 ${count} 个未回关用户？\n\n` +
-      "此操作会在 X 关注列表中逐个点击取消关注。\n" +
-      "操作不可恢复，恢复只能之后手动重新关注。"
-    );
-    if (ok) await sendRuntimeMessage({ type: "BATCH_UNFOLLOW" });
-  });
-}
-
-function bindFloatingDrag(panel, handle) {
-  let drag = null;
-
-  handle.addEventListener("pointerdown", (event) => {
-    if (event.button !== 0 || event.target.closest("button, input, select")) return;
-
-    const rect = panel.getBoundingClientRect();
-    drag = {
-      pointerId: event.pointerId,
-      offsetX: event.clientX - rect.left,
-      offsetY: event.clientY - rect.top
-    };
-    panel.classList.add("dragging");
-    handle.setPointerCapture?.(event.pointerId);
-    event.preventDefault();
   });
 
-  handle.addEventListener("pointermove", (event) => {
-    if (!drag || event.pointerId !== drag.pointerId) return;
-    moveFloatingPanel(panel, event.clientX - drag.offsetX, event.clientY - drag.offsetY);
-  });
-
-  const finishDrag = (event) => {
-    if (!drag || event.pointerId !== drag.pointerId) return;
-    drag = null;
-    panel.classList.remove("dragging");
-    saveFloatingPanelPosition();
-  };
-
-  handle.addEventListener("pointerup", finishDrag);
-  handle.addEventListener("pointercancel", finishDrag);
-
-  handle.addEventListener("dblclick", (event) => {
-    if (event.target.closest("button, input, select")) return;
-    resetFloatingPanelPosition(panel);
-  });
+  floating = { host, view };
+  return floating;
 }
 
-function moveFloatingPanel(panel, left, top) {
-  const rect = panel.getBoundingClientRect();
-  const margin = 8;
-  const maxLeft = Math.max(margin, window.innerWidth - rect.width - margin);
-  const maxTop = Math.max(margin, window.innerHeight - rect.height - margin);
-  const nextLeft = clamp(left, margin, maxLeft);
-  const nextTop = clamp(top, margin, maxTop);
-
-  panel.style.left = `${nextLeft}px`;
-  panel.style.top = `${nextTop}px`;
-  panel.style.right = "auto";
-  panel.style.bottom = "auto";
-  floatingPanelPosition = { left: nextLeft, top: nextTop };
-}
-
-async function restoreFloatingPanelPosition(panel) {
-  try {
-    const stored = await chrome.storage.local.get(FLOATING_PANEL_POSITION_KEY);
-    const position = stored?.[FLOATING_PANEL_POSITION_KEY];
-    if (!isValidFloatingPanelPosition(position)) return;
-    floatingPanelPosition = position;
-    moveFloatingPanel(panel, position.left, position.top);
-  } catch {
-    // Position persistence is optional; the panel still works without it.
-  }
-}
-
-function saveFloatingPanelPosition() {
-  if (!floatingPanelPosition) return;
-  chrome.storage.local.set({
-    [FLOATING_PANEL_POSITION_KEY]: floatingPanelPosition
-  }).catch(() => {});
-}
-
-function resetFloatingPanelPosition(panel) {
-  floatingPanelPosition = null;
-  panel.style.left = "";
-  panel.style.top = "";
-  panel.style.right = "";
-  panel.style.bottom = "";
-  chrome.storage.local.remove(FLOATING_PANEL_POSITION_KEY).catch(() => {});
-}
-
-function isValidFloatingPanelPosition(position) {
-  return Number.isFinite(position?.left) && Number.isFinite(position?.top);
-}
-
-function clamp(value, min, max) {
-  return Math.min(Math.max(value, min), max);
-}
-
-function renderFloatingResults(state) {
-  if (!floatingPanel || !state) return;
-  floatingState = state;
-
-  const shadow = floatingPanel.shadow;
-  const busy = ["detecting", "scanning", "unfollowing"].includes(state.status);
-  const totalUsers = state.nonFollowers || [];
-  const visibleUsers = getVisibleFloatingUsers(totalUsers);
-
-  shadow.querySelector("[data-floating-status]").textContent = state.message || "";
-  const account = shadow.querySelector("[data-floating-account]");
-  if (state.account && shadow.activeElement !== account) {
-    account.value = state.account;
-  }
-  shadow.querySelector("[data-floating-start]").disabled = busy;
-  shadow.querySelector("[data-floating-reset]").disabled = busy && state.status !== "error";
-  shadow.querySelector("[data-floating-following]").textContent = formatNumber(state.followingCount);
-  shadow.querySelector("[data-floating-scanned]").textContent = formatNumber(state.scannedCount);
-  shadow.querySelector("[data-floating-total]").textContent = formatNumber(totalUsers.length);
-  shadow.querySelector("[data-floating-count]").textContent =
-    `未回关用户 ${formatNumber(visibleUsers.length)}/${formatNumber(totalUsers.length)}`;
-  const action = shadow.querySelector("[data-floating-batch]");
-  action.textContent = busy ? "取消" : "一键取关";
-  action.disabled = !busy && !totalUsers.length;
-
-  renderFloatingList(visibleUsers, busy);
-}
-
-function renderFloatingList(users, busy) {
-  const list = floatingPanel.shadow.querySelector("[data-floating-list]");
-  const previousTop = floatingListScrollTop || list.scrollTop;
-  list.replaceChildren();
-
-  if (!users.length) {
-    const empty = document.createElement("p");
-    empty.className = "empty";
-    empty.textContent = "暂无符合条件的未回关用户";
-    list.append(empty);
-    return;
-  }
-
-  const fragment = document.createDocumentFragment();
-  for (const user of users) {
-    fragment.append(createFloatingUserRow(user, busy));
-  }
-  list.append(fragment);
-  requestAnimationFrame(() => {
-    list.scrollTop = Math.min(previousTop, list.scrollHeight);
-  });
-}
-
-function createFloatingUserRow(user, busy) {
-  const row = document.createElement("article");
-  row.className = "row";
-
-  const avatar = document.createElement("button");
-  avatar.className = "avatar";
-  avatar.type = "button";
-  avatar.dataset.openFloatingProfile = "true";
-  avatar.dataset.handle = user.handle;
-  avatar.disabled = busy;
-  avatar.title = `打开 @${user.handle} 主页`;
-
-  if (user.avatar) {
-    const image = document.createElement("img");
-    image.src = user.avatar;
-    image.alt = "";
-    image.referrerPolicy = "no-referrer";
-    image.addEventListener("error", () => {
-      image.remove();
-      avatar.textContent = user.handle.slice(0, 1).toUpperCase();
-    }, { once: true });
-    avatar.append(image);
-  } else {
-    avatar.textContent = user.handle.slice(0, 1).toUpperCase();
-  }
-
-  const meta = document.createElement("div");
-  meta.className = "meta";
-
-  const name = document.createElement("button");
-  name.className = "profile-name";
-  name.type = "button";
-  name.dataset.openFloatingProfile = "true";
-  name.dataset.handle = user.handle;
-  name.disabled = busy;
-  name.textContent = user.name || user.handle;
-
-  const handle = document.createElement("div");
-  handle.className = "handle";
-  handle.textContent = `@${user.handle}`;
-
-  const badges = document.createElement("div");
-  badges.className = "badges";
-  const statusBadge = document.createElement("span");
-  statusBadge.className = "badge warning";
-  statusBadge.textContent = "列表显示未回关";
-  badges.append(statusBadge);
-
-  meta.append(name, handle, badges);
-
-  const actions = document.createElement("div");
-  actions.className = "row-actions";
-  const open = document.createElement("button");
-  open.type = "button";
-  open.dataset.openFloatingProfile = "true";
-  open.dataset.handle = user.handle;
-  open.disabled = busy;
-  open.textContent = "主页";
-  actions.append(open);
-
-  row.append(avatar, meta, actions);
-  return row;
-}
-
-function getVisibleFloatingUsers(users) {
-  const query = floatingFilters.query.toLowerCase();
-  const filtered = users.filter((user) => {
-    if (query) {
-      const haystack = `${user.name || ""} ${user.handle || ""}`.toLowerCase();
-      if (!haystack.includes(query)) return false;
-    }
-
-    return true;
-  });
-
-  if (floatingFilters.sort === "handle") {
-    return filtered.slice().sort((a, b) => a.handle.localeCompare(b.handle));
-  }
-
-  return filtered.slice().sort((a, b) => (a.order || 0) - (b.order || 0));
+function detectXTheme() {
+  const color = getComputedStyle(document.body || document.documentElement).backgroundColor;
+  const [r, g, b] = (color.match(/\d+(\.\d+)?/g) || ["255", "255", "255"]).map(Number);
+  const theme = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255 < 0.45 ? "dark" : "light";
+  chrome.storage.local.set({ xTheme: theme }).catch(() => {});
+  return theme;
 }
 
 function getCurrentState() {
-  return sendRuntimeMessage({ type: "GET_STATE" }).then((response) => response?.state || null);
-}
-
-function sendRuntimeMessage(message) {
   return new Promise((resolve) => {
-    chrome.runtime.sendMessage(message, (response) => {
-      if (chrome.runtime.lastError) {
-        resolve(null);
-        return;
-      }
-      resolve(response || null);
-    });
+    try {
+      chrome.runtime.sendMessage({ type: "GET_STATE" }, (response) => {
+        if (chrome.runtime.lastError) {
+          resolve(null);
+          return;
+        }
+        resolve(response?.state || null);
+      });
+    } catch {
+      resolve(null);
+    }
   });
 }
 
-function createEmptyFloatingState() {
-  return {
-    status: "idle",
-    message: "打开 X 后点击开始检测",
-    account: "",
-    followingCount: 0,
-    scannedCount: 0,
-    nonFollowers: [],
-    unfollowedCount: 0
-  };
+// ---------- Navigation ----------
+
+async function prepareFollowingRoute(account) {
+  const handle = normalizeHandle(account);
+  if (!handle) return { navigated: false, total: 0 };
+  if (isFollowingRoute(handle)) {
+    await waitForFollowingListReady(30_000);
+    return { navigated: true, total: 0 };
+  }
+
+  const href = `/${handle}/following`;
+  const link = await waitForElement(() => {
+    const scope = getPrimaryColumn() || document;
+    return scope.querySelector(`a[href="${href}" i]`);
+  }, 10_000);
+  if (!link) return { navigated: false, total: 0 };
+
+  const total = parseCount(link.textContent || "");
+  link.click();
+  const arrived = await waitForElement(() => isFollowingRoute(handle) || null, 6000);
+  if (!arrived) return { navigated: false, total };
+
+  await waitForFollowingListReady(30_000);
+  return { navigated: true, total };
 }
+
+function isFollowingRoute(handle) {
+  const parts = location.pathname.split("/").filter(Boolean);
+  return normalizeHandle(parts[0]).toLowerCase() === handle.toLowerCase() &&
+    parts[1]?.toLowerCase() === "following" &&
+    parts.length === 2;
+}
+
+function parseCount(text) {
+  const match = cleanText(text).match(/(\d[\d.,\s]*)\s*(万|萬|千|[KkMm])?/);
+  if (!match) return 0;
+  const [, rawNumber, unit] = match;
+  if (unit) {
+    const value = Number.parseFloat(rawNumber.replace(/\s/g, "").replace(",", "."));
+    const multiplier = { 万: 10_000, 萬: 10_000, 千: 1000, k: 1000, m: 1_000_000 }[unit.toLowerCase()] || 1;
+    return Number.isFinite(value) ? Math.round(value * multiplier) : 0;
+  }
+  const digits = rawNumber.replace(/\D/g, "");
+  return digits ? Number(digits) : 0;
+}
+
+// ---------- Scanning ----------
 
 async function scanFollowingPage(account) {
   ensureFollowingRoute(account);
   await waitForFollowingListReady(30_000);
 
   const users = new Map();
+  const reporter = createProgressReporter();
   const originalScrollY = window.scrollY;
-  let previousSize = -1;
-  let previousScrollHeight = 0;
-  let stableRounds = 0;
-  const maxStableRounds = 8;
-  const startedAt = Date.now();
-  const maxDurationMs = 25 * 60 * 1000;
 
   try {
-    lastScanReportAt = 0;
-    lastScanReportCount = 0;
+    window.scrollTo({ top: 0, behavior: "auto" });
+    await waitForListChange("", 400);
 
-    while (!scanCancelled && Date.now() - startedAt < maxDurationMs) {
-      collectVisibleFollowingUsers(users);
-      reportScanProgress(users.size);
+    await sweepList({
+      maxDurationMs: 40 * 60 * 1000,
+      onCells(cells) {
+        for (const cell of cells) {
+          const user = parseFollowingUserCell(cell);
+          if (!user?.handle || !user.isFollowing) continue;
+          const key = user.handle.toLowerCase();
+          const existing = users.get(key);
+          if (existing) {
+            // Keep the first-seen order; refresh data in case the cell finished rendering.
+            users.set(key, { ...existing, ...user, order: existing.order });
+            continue;
+          }
+          const entry = { ...user, order: users.size + 1 };
+          users.set(key, entry);
+          if (!entry.followsYou) reporter.queue(entry);
+        }
+        reporter.flush(users.size);
+      }
+    });
 
-      const scrollHeight = document.documentElement.scrollHeight;
-      const atBottom = window.scrollY + window.innerHeight >= scrollHeight - 8;
-      const noChange = users.size === previousSize && scrollHeight === previousScrollHeight;
-
-      stableRounds = noChange && atBottom ? stableRounds + 1 : 0;
-      if (stableRounds >= maxStableRounds) break;
-
-      previousSize = users.size;
-      previousScrollHeight = scrollHeight;
-
-      window.scrollBy({ top: Math.max(window.innerHeight * 0.98, 760), behavior: "auto" });
-      await sleep(150);
-    }
-
-    if (scanCancelled) {
-      const error = new Error("任务已取消");
-      error.name = "AbortError";
-      throw error;
-    }
-
-    collectVisibleFollowingUsers(users);
-    reportScanProgress(users.size, true);
-    return [...users.values()];
+    reporter.flush(users.size, true);
+    return { users: [...users.values()], cancelled: jobCancelled };
   } finally {
     window.scrollTo({ top: originalScrollY, behavior: "auto" });
   }
 }
 
 function ensureFollowingRoute(account) {
-  const expected = normalizeHandle(account).toLowerCase();
-  const parts = location.pathname.split("/").filter(Boolean);
-  const actual = normalizeHandle(parts[0]).toLowerCase();
-  const section = parts[1]?.toLowerCase();
-  if (!expected || actual !== expected || section !== "following") {
-    throw new Error("当前页面不是目标账号的 following 列表，请重新开始检测。");
+  const expected = normalizeHandle(account);
+  if (!expected || !isFollowingRoute(expected)) {
+    throw new Error(t("errNotFollowingPage"));
   }
 }
 
-async function batchUnfollowOnFollowingPage(handles) {
-  await waitForFollowingListReady(30_000);
+function createProgressReporter() {
+  let lastAt = 0;
+  let pending = [];
+  return {
+    queue(user) {
+      pending.push(user);
+    },
+    flush(count, force = false) {
+      const now = Date.now();
+      if (!force && now - lastAt < 350) return;
+      lastAt = now;
+      const nonFollowers = pending;
+      pending = [];
+      chrome.runtime.sendMessage({
+        type: "SCAN_PROGRESS",
+        count,
+        nonFollowers
+      }).catch(() => {});
+    }
+  };
+}
 
-  const remaining = new Set(handles.map((handle) => normalizeHandle(handle).toLowerCase()).filter(Boolean));
-  const total = remaining.size;
-  const unfollowed = [];
-  const originalScrollY = window.scrollY;
-  let previousRemaining = remaining.size;
-  let previousScrollHeight = 0;
-  let stableRounds = 0;
-  const maxStableRounds = 18;
+/**
+ * Walks X's virtualised list from the current position to the end.
+ * Each step reads every rendered cell (not only the ones on screen), then scrolls
+ * so the last rendered cell sits near the top. The next cells are therefore always
+ * adjacent to ones already read, so nothing is skipped, and each step advances by
+ * the full rendered range instead of a single viewport.
+ */
+async function sweepList({ onCells, isDone = () => false, maxDurationMs }) {
   const startedAt = Date.now();
-  const maxDurationMs = 30 * 60 * 1000;
+  let stableRounds = 0;
+  let retries = 0;
+  let previousSignature = "";
 
-  try {
-    window.scrollTo({ top: 0, behavior: "auto" });
-    await sleep(500);
+  while (!jobCancelled && !isDone() && Date.now() - startedAt < maxDurationMs) {
+    const cells = getRenderedUserCells();
+    await onCells(cells);
+    if (jobCancelled || isDone()) break;
 
-    while (!scanCancelled && remaining.size && Date.now() - startedAt < maxDurationMs) {
-      await unfollowVisibleTargets(remaining, unfollowed, total);
-      reportUnfollowProgress(unfollowed.length, total);
+    const signature = getListSignature();
+    const atBottom = isNearPageBottom();
 
-      if (!remaining.size) break;
-
-      const scrollHeight = document.documentElement.scrollHeight;
-      const atBottom = window.scrollY + window.innerHeight >= scrollHeight - 8;
-      const noChange = remaining.size === previousRemaining && scrollHeight === previousScrollHeight;
-
-      stableRounds = noChange && atBottom ? stableRounds + 1 : 0;
-      if (stableRounds >= maxStableRounds) break;
-
-      previousRemaining = remaining.size;
-      previousScrollHeight = scrollHeight;
-
-      window.scrollBy({ top: Math.max(window.innerHeight * 0.95, 760), behavior: "auto" });
-      await sleep(350);
+    if (atBottom && signature === previousSignature && !isListLoading()) {
+      stableRounds += 1;
+      if (stableRounds === 1 && retries < 3 && clickRetryButton()) {
+        retries += 1;
+        stableRounds = 0;
+        await sleep(2500);
+        continue;
+      }
+      if (stableRounds >= 2) break;
+    } else {
+      stableRounds = 0;
     }
 
-    if (scanCancelled) {
-      const error = new Error("任务已取消");
-      error.name = "AbortError";
-      throw error;
-    }
+    previousSignature = signature;
+    advancePastRenderedCells(getRenderedUserCells());
+    await waitForListChange(signature, atBottom ? 2000 : 1200);
+  }
+}
 
-    return {
-      unfollowed,
-      missing: [...remaining]
+function advancePastRenderedCells(cells) {
+  const last = cells[cells.length - 1];
+  if (!last) {
+    window.scrollBy({ top: window.innerHeight * 0.8, behavior: "auto" });
+    return;
+  }
+  const lastTop = last.getBoundingClientRect().top + window.scrollY;
+  const target = Math.max(window.scrollY + 1, lastTop - 80);
+  window.scrollTo({ top: target, behavior: "auto" });
+}
+
+function getListSignature() {
+  const cells = getRenderedUserCells();
+  return [
+    findPrimaryHandle(cells[0] || document.createElement("div")),
+    findPrimaryHandle(cells[cells.length - 1] || document.createElement("div")),
+    cells.length,
+    document.documentElement.scrollHeight
+  ].join("|");
+}
+
+/**
+ * Resolves as soon as the rendered cells change (new page arrived or the virtual list
+ * re-rendered after scrolling), instead of sleeping a fixed amount every step.
+ */
+function waitForListChange(previousSignature, timeoutMs) {
+  return new Promise((resolve) => {
+    const target = getPrimaryColumn() || document.body;
+    let done = false;
+    const finish = async (changed) => {
+      if (done) return;
+      done = true;
+      observer.disconnect();
+      clearTimeout(timer);
+      clearInterval(poll);
+      // Let the current React commit finish painting before the cells are read.
+      if (changed) await nextFrame();
+      resolve(changed);
     };
-  } finally {
-    window.scrollTo({ top: originalScrollY, behavior: "auto" });
-  }
+    const check = () => {
+      if (jobCancelled) finish(false);
+      else if (getListSignature() !== previousSignature) finish(true);
+    };
+    const observer = new MutationObserver(check);
+    observer.observe(target, { childList: true, subtree: true });
+    const poll = setInterval(check, 150);
+    const timer = setTimeout(() => finish(false), timeoutMs);
+    check();
+  });
 }
 
-async function unfollowVisibleTargets(remaining, unfollowed, total) {
-  const primary = getPrimaryColumn();
-  if (!primary) return;
-
-  const cells = [...primary.querySelectorAll('[data-testid="UserCell"]')];
-  for (const cell of cells) {
-    const handle = findPrimaryHandle(cell);
-    const key = handle.toLowerCase();
-    if (!handle || !remaining.has(key)) continue;
-
-    const button = findFollowingButtonInCell(cell);
-    if (!button) {
-      remaining.delete(key);
-      continue;
-    }
-
-    button.click();
-    await sleep(250);
-
-    const confirm = await waitForElement(findConfirmUnfollowButton, 5000);
-    if (!confirm) continue;
-
-    confirm.click();
-    remaining.delete(key);
-    unfollowed.push(handle);
-    reportUnfollowProgress(unfollowed.length, total);
-    await sleep(550);
-  }
+function isNearPageBottom() {
+  const scrollHeight = document.documentElement.scrollHeight;
+  return window.scrollY + window.innerHeight >= scrollHeight - 160;
 }
 
-function collectVisibleFollowingUsers(users) {
-  const primary = getPrimaryColumn();
-  if (!primary) return;
+function isListLoading() {
+  return Boolean(getPrimaryColumn()?.querySelector('[role="progressbar"]'));
+}
 
-  const cells = getVisibleUserCellsInPageOrder(primary);
-  for (const cell of cells) {
-    const user = parseFollowingUserCell(cell);
-    if (!user?.handle || !user.isFollowing) continue;
-    const key = user.handle.toLowerCase();
-    const existing = users.get(key);
-    users.set(key, {
-      ...existing,
-      ...user,
-      order: existing?.order || users.size + 1
-    });
-  }
+function clickRetryButton() {
+  const primary = getPrimaryColumn();
+  if (!primary) return false;
+  const button = [...primary.querySelectorAll('button, [role="button"]')].find((node) => {
+    return /^(retry|try again|重试|重試|再試行|다시 시도)$/i.test(cleanText(node.textContent || ""));
+  });
+  if (!button) return false;
+  button.click();
+  return true;
+}
+
+function getRenderedUserCells() {
+  const primary = getPrimaryColumn();
+  if (!primary) return [];
+  return [...primary.querySelectorAll('[data-testid="UserCell"]')]
+    .map((cell) => ({ cell, rect: cell.getBoundingClientRect() }))
+    .filter(({ rect }) => rect.height > 0)
+    .sort((a, b) => a.rect.top - b.rect.top || a.rect.left - b.rect.left)
+    .map(({ cell }) => cell);
 }
 
 function parseFollowingUserCell(cell) {
   const handle = findPrimaryHandle(cell);
   if (!handle) return null;
 
-  const text = cleanText(cell.textContent || "");
-  const handleToken = `@${handle.toLowerCase()}`;
-  const parts = text.split(/\s+/).filter(Boolean);
-  const handleIndex = parts.findIndex((part) => part.toLowerCase() === handleToken);
-  const name = handleIndex > 0 ? parts.slice(0, handleIndex).join(" ") : handle;
-
   return {
     handle,
-    name,
+    name: findDisplayName(cell, handle),
     avatar: findAvatarSrc(cell),
-    followsYou: textShowsFollowsYou(text),
-    isFollowing: cellShowsFollowing(cell)
+    followsYou: cellShowsFollowsYou(cell),
+    isFollowing: Boolean(findFollowingButtonInCell(cell))
   };
 }
 
-function getVisibleUserCellsInPageOrder(primary) {
-  return [...primary.querySelectorAll('[data-testid="UserCell"]')]
-    .filter((cell) => {
-      const rect = cell.getBoundingClientRect();
-      return rect.height > 0 && rect.bottom >= 0 && rect.top <= window.innerHeight;
-    })
-    .sort((left, right) => {
-      const leftRect = left.getBoundingClientRect();
-      const rightRect = right.getBoundingClientRect();
-      return leftRect.top - rightRect.top || leftRect.left - rightRect.left;
-    });
+function cellShowsFollowsYou(cell) {
+  if (cell.querySelector('[data-testid="userFollowIndicator"]')) return true;
+  const text = cleanText(cell.textContent || "").toLowerCase();
+  return FOLLOWS_YOU_MARKERS.some((marker) => text.includes(marker));
+}
+
+function findDisplayName(cell, handle) {
+  const handleToken = `@${handle.toLowerCase()}`;
+  const links = [...cell.querySelectorAll('a[href^="/"]')];
+  for (const link of links) {
+    const text = cleanText(link.textContent || "");
+    if (text && !text.startsWith("@") && text.toLowerCase() !== handleToken) return text;
+  }
+  const parts = cleanText(cell.textContent || "").split(/\s+/);
+  const index = parts.findIndex((part) => part.toLowerCase() === handleToken);
+  return index > 0 ? parts.slice(0, index).join(" ") : handle;
 }
 
 function findPrimaryHandle(cell) {
-  const links = [...cell.querySelectorAll('a[href^="/"]')];
-  const candidates = links
-    .map((link) => {
-      const href = link.getAttribute("href") || "";
-      const path = href.split(/[?#]/)[0];
-      const segments = path.split("/").filter(Boolean);
-      if (segments.length !== 1) return "";
-      return extractHandleFromPath(path);
-    })
-    .filter(Boolean);
-
-  return candidates[0] || "";
-}
-
-function cellShowsFollowing(cell) {
-  if (findFollowingButtonInCell(cell)) return true;
-
-  return false;
+  for (const link of cell.querySelectorAll('a[href^="/"]')) {
+    const path = (link.getAttribute("href") || "").split(/[?#]/)[0];
+    if (path.split("/").filter(Boolean).length !== 1) continue;
+    const handle = extractHandleFromPath(path);
+    if (handle) return handle;
+  }
+  return "";
 }
 
 function findFollowingButtonInCell(cell) {
-  const testIdButton = cell.querySelector('button[data-testid$="-unfollow"]');
-  if (testIdButton) return testIdButton;
+  return cell.querySelector('button[data-testid$="-unfollow"]');
+}
 
-  return null;
+function findAvatarSrc(cell) {
+  const images = [...cell.querySelectorAll("img[src]")];
+  const profileImage = images.find((image) => /profile_images/.test(image.src));
+  return profileImage?.src || images.find((image) => image.src.startsWith("https://"))?.src || "";
+}
+
+// ---------- Unfollowing ----------
+
+async function unfollowOnFollowingPage({ handles = [], orders = {}, scannedCount = 0 }) {
+  await waitForFollowingListReady(30_000);
+
+  const remaining = new Map();
+  for (const handle of handles) {
+    const normalized = normalizeHandle(handle);
+    if (normalized) remaining.set(normalized.toLowerCase(), normalized);
+  }
+  const total = remaining.size;
+  const progress = { done: [], failed: [], consecutiveFailures: 0, stopped: false, lastError: "" };
+  const originalScrollY = window.scrollY;
+  const finished = () => !remaining.size || progress.stopped;
+
+  try {
+    await unfollowRenderedTargets(remaining, progress, total);
+
+    if (!finished() && !jobCancelled) {
+      // Jump close to where the earliest target was seen during the scan instead of starting at the top.
+      const firstOrder = Math.min(...[...remaining.keys()].map((key) => orders[key] || 1));
+      const ratio = scannedCount ? Math.max(0, (firstOrder - 1) / scannedCount - 0.04) : 0;
+      const startY = Math.floor(document.documentElement.scrollHeight * ratio);
+
+      window.scrollTo({ top: startY, behavior: "auto" });
+      await waitForListChange("", 500);
+      await sweepList({
+        maxDurationMs: 30 * 60 * 1000,
+        isDone: finished,
+        onCells: () => unfollowRenderedTargets(remaining, progress, total)
+      });
+
+      if (!finished() && startY > 0 && !jobCancelled) {
+        window.scrollTo({ top: 0, behavior: "auto" });
+        await waitForListChange("", 500);
+        await sweepList({
+          maxDurationMs: 15 * 60 * 1000,
+          isDone: () => finished() || window.scrollY > startY + window.innerHeight,
+          onCells: () => unfollowRenderedTargets(remaining, progress, total)
+        });
+      }
+    }
+
+    return {
+      unfollowed: progress.done,
+      failed: progress.failed,
+      missing: [...remaining.values()],
+      cancelled: jobCancelled,
+      rateLimited: progress.stopped,
+      lastError: progress.lastError
+    };
+  } finally {
+    window.scrollTo({ top: originalScrollY, behavior: "auto" });
+  }
+}
+
+async function unfollowRenderedTargets(remaining, progress, total) {
+  while (!jobCancelled && remaining.size && !progress.stopped) {
+    // Re-query every time: scrolling a cell into view makes X re-render the list,
+    // so cells from an earlier query may already be detached.
+    const cell = getRenderedUserCells().find((candidate) => remaining.has(findPrimaryHandle(candidate).toLowerCase()));
+    if (!cell) return;
+    const handle = findPrimaryHandle(cell);
+    remaining.delete(handle.toLowerCase());
+
+    const button = findFollowingButtonInCell(cell);
+    if (!button) {
+      // Already not following (e.g. unfollowed elsewhere): treat as done so it leaves the list.
+      if (cell.querySelector('button[data-testid$="-follow"]')) {
+        progress.done.push(handle);
+        reportUnfollowProgress(handle, progress.done.length, total);
+      } else {
+        progress.failed.push(handle);
+      }
+      continue;
+    }
+
+    cell.scrollIntoView({ block: "center", behavior: "auto" });
+    const toastsBefore = getToastTexts();
+    button.click();
+    const confirm = await waitForElement(findConfirmUnfollowButton, 4000, 50);
+    if (!confirm) {
+      dismissConfirmSheet();
+      recordUnfollowFailure(progress, handle, toastsBefore);
+      if (progress.stopped) return;
+      continue;
+    }
+
+    confirm.click();
+    const result = await waitForUnfollowResult(handle);
+    if (result !== "done") {
+      dismissConfirmSheet();
+      recordUnfollowFailure(progress, handle, toastsBefore);
+      if (progress.stopped) return;
+      await sleep(1200);
+      continue;
+    }
+
+    progress.consecutiveFailures = 0;
+    progress.done.push(handle);
+    reportUnfollowProgress(handle, progress.done.length, total);
+    // Human-like pacing keeps X from rate limiting the account.
+    await sleep(200 + Math.random() * 400);
+  }
+}
+
+/**
+ * X flips the button optimistically and flips it back (with a toast) if the request is
+ * rejected, e.g. when the account hits its unfollow limit. So a flip alone is not proof:
+ * the user's cell is looked up again by handle (cells get recycled while scrolling) and
+ * must still show "Follow" after a short settle period.
+ */
+async function waitForUnfollowResult(handle) {
+  const flipped = await waitForElement(() => {
+    const cell = findRenderedCellByHandle(handle);
+    return cell && cellShowsNotFollowing(cell) ? cell : null;
+  }, 3000, 50);
+  if (!flipped) return "failed";
+
+  await sleep(700);
+  const cell = findRenderedCellByHandle(handle);
+  if (cell && !cellShowsNotFollowing(cell)) return "reverted";
+  return "done";
+}
+
+function recordUnfollowFailure(progress, handle, toastsBefore) {
+  progress.failed.push(handle);
+  progress.consecutiveFailures = (progress.consecutiveFailures || 0) + 1;
+  const toast = getToastTexts().find((text) => !toastsBefore.includes(text));
+  if (toast) progress.lastError = toast;
+  // A few failures in a row almost always means X is refusing unfollows for now.
+  if (progress.consecutiveFailures >= 3) progress.stopped = true;
+}
+
+function findRenderedCellByHandle(handle) {
+  const key = handle.toLowerCase();
+  return getRenderedUserCells().find((cell) => findPrimaryHandle(cell).toLowerCase() === key) || null;
+}
+
+function cellShowsNotFollowing(cell) {
+  return !findFollowingButtonInCell(cell) && Boolean(cell.querySelector('button[data-testid$="-follow"]'));
+}
+
+function getToastTexts() {
+  return [...document.querySelectorAll('[data-testid="toast"], [role="alert"]')]
+    .map((node) => cleanText(node.textContent || ""))
+    .filter(Boolean);
+}
+
+function dismissConfirmSheet() {
+  const cancel = document.querySelector('[data-testid="confirmationSheetCancel"]');
+  if (cancel) {
+    cancel.click();
+    return;
+  }
+  if (document.querySelector('[role="alertdialog"], [data-testid="confirmationSheetDialog"]')) {
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", code: "Escape", keyCode: 27, bubbles: true }));
+  }
 }
 
 function findConfirmUnfollowButton() {
   const direct = document.querySelector('[data-testid="confirmationSheetConfirm"]');
   if (direct) return direct;
-
-  return [...document.querySelectorAll('button[role="button"], div[role="button"]')]
-    .find((button) => {
-      const label = cleanText(`${button.getAttribute("aria-label") || ""} ${button.textContent || ""}`);
-      return /unfollow|取消关注/i.test(label);
-    }) || null;
+  const dialog = document.querySelector('[role="alertdialog"], [data-testid="confirmationSheetDialog"]');
+  if (!dialog) return null;
+  return [...dialog.querySelectorAll('button, [role="button"]')].find((button) => {
+    const label = cleanText(`${button.getAttribute("aria-label") || ""} ${button.textContent || ""}`);
+    return /unfollow|取消关注|取消跟隨|フォロー解除|언팔로우/i.test(label);
+  }) || null;
 }
 
-function textShowsFollowsYou(text) {
-  const normalized = cleanText(text).toLowerCase();
-  return [
-    "follows you",
-    "关注了你"
-  ].some((marker) => normalized.includes(marker.toLowerCase()));
+function reportUnfollowProgress(handle, done, total) {
+  chrome.runtime.sendMessage({ type: "UNFOLLOW_PROGRESS", handle, done, total }).catch(() => {});
 }
 
-function findAvatarSrc(cell) {
-  const images = [...cell.querySelectorAll("img[src]")];
-  const profileImage = images.find((image) => /pbs\.twimg\.com\/profile_images|profile_images/.test(image.src));
-  return profileImage?.src || images.find((image) => image.src.startsWith("https://"))?.src || "";
-}
+// ---------- Helpers ----------
 
 function getPrimaryColumn() {
   return document.querySelector('[data-testid="primaryColumn"]');
@@ -1067,26 +636,13 @@ function getPrimaryColumn() {
 async function waitForFollowingListReady(timeoutMs) {
   const startedAt = Date.now();
   const firstCell = await waitForElement(
-    () => document.querySelector('[data-testid="UserCell"]'),
+    () => getPrimaryColumn()?.querySelector('[data-testid="UserCell"]'),
     Math.min(timeoutMs, 12_000)
   );
   if (firstCell) return firstCell;
 
   const remaining = Math.max(1000, timeoutMs - (Date.now() - startedAt));
   return waitForElement(() => getPrimaryColumn(), remaining);
-}
-
-function reportScanProgress(count, force = false) {
-  const now = Date.now();
-  if (!force && count === lastScanReportCount) return;
-  if (!force && now - lastScanReportAt < 500 && count - lastScanReportCount < 20) return;
-  lastScanReportAt = now;
-  lastScanReportCount = count;
-  chrome.runtime.sendMessage({ type: "SCAN_PROGRESS", listType: "following", count }).catch(() => {});
-}
-
-function reportUnfollowProgress(done, total) {
-  chrome.runtime.sendMessage({ type: "UNFOLLOW_PROGRESS", done, total }).catch(() => {});
 }
 
 function extractHandleFromPath(path) {
@@ -1107,15 +663,15 @@ function normalizeHandle(value) {
     .match(/^[A-Za-z0-9_]{1,15}$/)?.[0] || "";
 }
 
+function t(key, ...substitutions) {
+  return chrome.i18n.getMessage(key, substitutions.map(String)) || key;
+}
+
 function cleanText(text) {
   return String(text || "").replace(/\s+/g, " ").trim();
 }
 
-function formatNumber(value) {
-  return new Intl.NumberFormat("zh-CN").format(value || 0);
-}
-
-function waitForElement(getter, timeoutMs) {
+function waitForElement(getter, timeoutMs, intervalMs = 120) {
   return new Promise((resolve) => {
     const existing = getter();
     if (existing) {
@@ -1126,12 +682,16 @@ function waitForElement(getter, timeoutMs) {
     const startedAt = Date.now();
     const timer = setInterval(() => {
       const element = getter();
-      if (element || Date.now() - startedAt > timeoutMs) {
+      if (element || jobCancelled || Date.now() - startedAt > timeoutMs) {
         clearInterval(timer);
         resolve(element || null);
       }
-    }, 250);
+    }, intervalMs);
   });
+}
+
+function nextFrame() {
+  return new Promise((resolve) => requestAnimationFrame(() => resolve()));
 }
 
 function sleep(ms) {

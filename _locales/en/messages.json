@@ -1,0 +1,420 @@
+{
+  "extName": {
+    "message": "X Non-Follower Checker"
+  },
+  "extDescription": {
+    "message": "Find people you follow on X who don't follow you back. Everything runs locally in your browser."
+  },
+  "switchAccount": {
+    "message": "Switch account"
+  },
+  "showInPage": {
+    "message": "Show on the X page"
+  },
+  "collapse": {
+    "message": "Minimize"
+  },
+  "close": {
+    "message": "Close"
+  },
+  "accountPlaceholder": {
+    "message": "Your X username, e.g. jack"
+  },
+  "check": {
+    "message": "Scan"
+  },
+  "intro": {
+    "message": "Find who you follow that doesn't follow you back"
+  },
+  "statFollowing": {
+    "message": "Following"
+  },
+  "statNonFollowers": {
+    "message": "Not following back"
+  },
+  "startScan": {
+    "message": "Start scan"
+  },
+  "rescan": {
+    "message": "Scan again"
+  },
+  "stop": {
+    "message": "Stop"
+  },
+  "searchPlaceholder": {
+    "message": "Search accounts"
+  },
+  "search": {
+    "message": "Search"
+  },
+  "sort": {
+    "message": "Sort"
+  },
+  "sortRecent": {
+    "message": "Recently followed"
+  },
+  "sortOldest": {
+    "message": "Followed longest ago"
+  },
+  "sortHandle": {
+    "message": "A–Z"
+  },
+  "clear": {
+    "message": "Clear"
+  },
+  "unfollowAll": {
+    "message": "Unfollow all"
+  },
+  "confirmUnfollow": {
+    "message": "Unfollow"
+  },
+  "cancel": {
+    "message": "Cancel"
+  },
+  "statusStopped": {
+    "message": "Stopped"
+  },
+  "statusInterrupted": {
+    "message": "Scan interrupted"
+  },
+  "freshSubtitle": {
+    "message": "Works with X in any language"
+  },
+  "progressScanned": {
+    "message": "Scanned $P1$",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "progressUnfollow": {
+    "message": "Unfollowed $P1$ / $P2$",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      },
+      "p2": {
+        "content": "$2"
+      }
+    }
+  },
+  "keepTabOpen": {
+    "message": "Keep this X tab open"
+  },
+  "preparing": {
+    "message": "Getting ready…"
+  },
+  "footFiltered": {
+    "message": "Showing $P1$ of $P2$",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      },
+      "p2": {
+        "content": "$2"
+      }
+    }
+  },
+  "footTotal": {
+    "message": "Not following back: $P1$",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "unfollowFiltered": {
+    "message": "Unfollow these $P1$",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "footUnfollowedSession": {
+    "message": "Unfollowed this session: $P1$",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "emptyNoMatchTitle": {
+    "message": "No matches"
+  },
+  "emptyNoMatchBody": {
+    "message": "Try a different search."
+  },
+  "emptyScanningTitle": {
+    "message": "Scanning"
+  },
+  "emptyScanningBody": {
+    "message": "Accounts that don't follow you back show up here as they're found."
+  },
+  "emptyAllFollowTitle": {
+    "message": "Everyone follows you back"
+  },
+  "emptyAllFollowBody": {
+    "message": "All $P1$ accounts you follow follow you back.",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "openProfile": {
+    "message": "Open @$P1$'s profile",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "rowUnfollow": {
+    "message": "Unfollow"
+  },
+  "rowUnfollowing": {
+    "message": "Unfollowing…"
+  },
+  "rowUnfollowTitle": {
+    "message": "Unfollow @$P1$",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "modalTitle": {
+    "message": "Unfollow $P1$ accounts?",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "modalBody": {
+    "message": "They're unfollowed one by one in your following list, so keep the X tab open until it's done. This can't be undone — you'd have to follow them again yourself."
+  },
+  "pillDefault": {
+    "message": "Non-follower check"
+  },
+  "pillScanningPct": {
+    "message": "Scanning $P1$% · $P2$ found",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      },
+      "p2": {
+        "content": "$2"
+      }
+    }
+  },
+  "pillScanning": {
+    "message": "Scanning · $P1$ found",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "pillUnfollowing": {
+    "message": "Unfollowing $P1$/$P2$",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      },
+      "p2": {
+        "content": "$2"
+      }
+    }
+  },
+  "pillResults": {
+    "message": "Not following back: $P1$",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "errorReload": {
+    "message": "The extension was updated or reloaded. Refresh the X page and try again."
+  },
+  "etaSeconds": {
+    "message": "About $P1$ sec left",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "etaMinSec": {
+    "message": "About $P1$ min $P2$ sec left",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      },
+      "p2": {
+        "content": "$2"
+      }
+    }
+  },
+  "etaMinutes": {
+    "message": "About $P1$ min left",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "msgIdle": {
+    "message": "Open X and start a scan"
+  },
+  "errBusy": {
+    "message": "Another task is already running"
+  },
+  "msgDetecting": {
+    "message": "Finding your account…"
+  },
+  "errNoAccount": {
+    "message": "Couldn't detect your account. Click “Switch account”, enter your X username, and try again."
+  },
+  "msgOpeningFollowing": {
+    "message": "Opening @$P1$'s following list…",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "msgScanning": {
+    "message": "Scanning your following list…"
+  },
+  "errReadFailed": {
+    "message": "Couldn't read your following list"
+  },
+  "msgScanStopped": {
+    "message": "Stopped · kept $P1$ scanned accounts",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "msgScanDone": {
+    "message": "Scan complete · $P1$",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "msgCancelled": {
+    "message": "Cancelled"
+  },
+  "errNoAccountUnfollow": {
+    "message": "Couldn't detect your account. Scan again first."
+  },
+  "msgUnfollowingOne": {
+    "message": "Unfollowing @$P1$…",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "msgUnfollowingMany": {
+    "message": "Unfollowing $P1$ accounts…",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "errUnfollowFailed": {
+    "message": "Unfollow failed"
+  },
+  "msgRateLimited": {
+    "message": "X is refusing unfollows right now, so the extension stopped. Unfollowed $P1$; the other $P2$ stay in the list. Try again in a few hours.",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      },
+      "p2": {
+        "content": "$2"
+      }
+    }
+  },
+  "msgXSays": {
+    "message": " (X says: $P1$)",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "msgUnfollowStopped": {
+    "message": "Stopped · unfollowed $P1$",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "msgUnfollowDone": {
+    "message": "Unfollowed $P1$",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "msgUnfollowPartial": {
+    "message": "Unfollowed $P1$ · $P2$ didn't go through and are still listed",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      },
+      "p2": {
+        "content": "$2"
+      }
+    }
+  },
+  "errOpenX": {
+    "message": "Open x.com in this window first, then start the scan."
+  },
+  "errPageTimeout": {
+    "message": "The page took too long to load. Check your connection and try again."
+  },
+  "errNoResponse": {
+    "message": "The page isn't responding. Refresh X and try again."
+  },
+  "msgInterrupted": {
+    "message": "The last task was interrupted. You can scan again."
+  },
+  "errCancelled": {
+    "message": "Task cancelled"
+  },
+  "durationSeconds": {
+    "message": "took $P1$ sec",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "durationMinSec": {
+    "message": "took $P1$ min $P2$ sec",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      },
+      "p2": {
+        "content": "$2"
+      }
+    }
+  },
+  "errNotFollowingPage": {
+    "message": "This isn't your following list. Start the scan again."
+  }
+}

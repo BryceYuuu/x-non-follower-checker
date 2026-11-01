@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "X未回关检测",
-  "description": "读取 X 关注列表，筛选列表中未显示回关标记的用户。",
-  "version": "1.0.18",
+  "name": "__MSG_extName__",
+  "description": "__MSG_extDescription__",
+  "default_locale": "en",
+  "version": "1.0.19",
   "icons": {
     "16": "assets/icon16.png",
     "32": "assets/icon32.png",
@@ -19,7 +20,7 @@
       "48": "assets/icon48.png",
       "128": "assets/icon128.png"
     },
-    "default_title": "X未回关检测"
+    "default_title": "__MSG_extName__"
   },
   "background": {
     "service_worker": "src/background.js"
@@ -30,7 +31,7 @@
   "content_scripts": [
     {
       "matches": ["https://x.com/*", "https://*.x.com/*", "https://twitter.com/*", "https://*.twitter.com/*"],
-      "js": ["src/content.js"],
+      "js": ["src/panel-view.js", "src/content.js"],
       "run_at": "document_idle"
     }
   ]

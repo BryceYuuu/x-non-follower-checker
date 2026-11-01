@@ -15,13 +15,14 @@ const files = [
   "manifest.json",
   "popup/popup.html",
   "src/background.js",
+  "src/panel-view.js",
   "src/content.js",
   "src/ui.js",
-  "styles/ui.css",
   "assets/icon16.png",
   "assets/icon32.png",
   "assets/icon48.png",
-  "assets/icon128.png"
+  "assets/icon128.png",
+  "_locales"
 ];
 
 for (const file of files) {

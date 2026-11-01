@@ -1,0 +1,420 @@
+{
+  "extName": {
+    "message": "X未回追蹤檢測"
+  },
+  "extDescription": {
+    "message": "掃描 X 追蹤名單，找出你追蹤了但沒有回追你的人。資料只在本機瀏覽器處理。"
+  },
+  "switchAccount": {
+    "message": "切換帳號"
+  },
+  "showInPage": {
+    "message": "在 X 頁面中顯示"
+  },
+  "collapse": {
+    "message": "收合"
+  },
+  "close": {
+    "message": "關閉"
+  },
+  "accountPlaceholder": {
+    "message": "你的 X 使用者名稱，例如 jack"
+  },
+  "check": {
+    "message": "檢測"
+  },
+  "intro": {
+    "message": "找出你追蹤了、但沒有回追你的人"
+  },
+  "statFollowing": {
+    "message": "追蹤中"
+  },
+  "statNonFollowers": {
+    "message": "未回追"
+  },
+  "startScan": {
+    "message": "開始檢測"
+  },
+  "rescan": {
+    "message": "重新檢測"
+  },
+  "stop": {
+    "message": "停止"
+  },
+  "searchPlaceholder": {
+    "message": "搜尋名稱或 @使用者名稱"
+  },
+  "search": {
+    "message": "搜尋"
+  },
+  "sort": {
+    "message": "排序"
+  },
+  "sortRecent": {
+    "message": "最近追蹤的在前"
+  },
+  "sortOldest": {
+    "message": "最早追蹤的在前"
+  },
+  "sortHandle": {
+    "message": "A–Z"
+  },
+  "clear": {
+    "message": "清除"
+  },
+  "unfollowAll": {
+    "message": "全部取消追蹤"
+  },
+  "confirmUnfollow": {
+    "message": "確認取消追蹤"
+  },
+  "cancel": {
+    "message": "取消"
+  },
+  "statusStopped": {
+    "message": "已停止"
+  },
+  "statusInterrupted": {
+    "message": "檢測中斷"
+  },
+  "freshSubtitle": {
+    "message": "支援任何 X 介面語言"
+  },
+  "progressScanned": {
+    "message": "已掃描 $P1$",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "progressUnfollow": {
+    "message": "取消追蹤 $P1$ / $P2$",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      },
+      "p2": {
+        "content": "$2"
+      }
+    }
+  },
+  "keepTabOpen": {
+    "message": "請保持 X 頁面開啟"
+  },
+  "preparing": {
+    "message": "準備中…"
+  },
+  "footFiltered": {
+    "message": "顯示 $P1$ / $P2$ 位",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      },
+      "p2": {
+        "content": "$2"
+      }
+    }
+  },
+  "footTotal": {
+    "message": "共 $P1$ 位未回追",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "unfollowFiltered": {
+    "message": "取消追蹤這 $P1$ 位",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "footUnfollowedSession": {
+    "message": "本次已取消追蹤 $P1$ 位",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "emptyNoMatchTitle": {
+    "message": "沒有符合的使用者"
+  },
+  "emptyNoMatchBody": {
+    "message": "換個關鍵字試試。"
+  },
+  "emptyScanningTitle": {
+    "message": "正在掃描"
+  },
+  "emptyScanningBody": {
+    "message": "發現的未回追使用者會即時出現在這裡。"
+  },
+  "emptyAllFollowTitle": {
+    "message": "沒有未回追的人"
+  },
+  "emptyAllFollowBody": {
+    "message": "掃描的 $P1$ 個追蹤都回追了你。",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "openProfile": {
+    "message": "開啟 @$P1$ 的個人檔案",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "rowUnfollow": {
+    "message": "取消追蹤"
+  },
+  "rowUnfollowing": {
+    "message": "處理中…"
+  },
+  "rowUnfollowTitle": {
+    "message": "取消追蹤 @$P1$",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "modalTitle": {
+    "message": "取消追蹤 $P1$ 位使用者？",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "modalBody": {
+    "message": "擴充功能會在你的追蹤名單裡逐一取消追蹤，期間請保持 X 頁面開啟。取消追蹤後無法復原，只能手動重新追蹤。"
+  },
+  "pillDefault": {
+    "message": "未回追檢測"
+  },
+  "pillScanningPct": {
+    "message": "掃描中 $P1$% · $P2$ 位",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      },
+      "p2": {
+        "content": "$2"
+      }
+    }
+  },
+  "pillScanning": {
+    "message": "掃描中 · $P1$ 位",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "pillUnfollowing": {
+    "message": "取消追蹤中 $P1$/$P2$",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      },
+      "p2": {
+        "content": "$2"
+      }
+    }
+  },
+  "pillResults": {
+    "message": "未回追 $P1$ 位",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "errorReload": {
+    "message": "擴充功能已更新或重新載入，請重新整理 X 頁面後再試。"
+  },
+  "etaSeconds": {
+    "message": "約剩 $P1$ 秒",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "etaMinSec": {
+    "message": "約剩 $P1$ 分 $P2$ 秒",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      },
+      "p2": {
+        "content": "$2"
+      }
+    }
+  },
+  "etaMinutes": {
+    "message": "約剩 $P1$ 分鐘",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "msgIdle": {
+    "message": "開啟 X 後點擊開始檢測"
+  },
+  "errBusy": {
+    "message": "已有任務正在執行"
+  },
+  "msgDetecting": {
+    "message": "正在識別目前登入的帳號…"
+  },
+  "errNoAccount": {
+    "message": "無法識別目前登入的帳號。點「切換帳號」填寫你的 X 使用者名稱後重試。"
+  },
+  "msgOpeningFollowing": {
+    "message": "正在開啟 @$P1$ 的追蹤名單…",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "msgScanning": {
+    "message": "正在掃描追蹤名單…"
+  },
+  "errReadFailed": {
+    "message": "讀取追蹤名單失敗"
+  },
+  "msgScanStopped": {
+    "message": "已停止 · 保留已掃描的 $P1$ 個追蹤",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "msgScanDone": {
+    "message": "掃描完成 · $P1$",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "msgCancelled": {
+    "message": "已取消"
+  },
+  "errNoAccountUnfollow": {
+    "message": "無法識別目前帳號，請先重新檢測。"
+  },
+  "msgUnfollowingOne": {
+    "message": "正在取消追蹤 @$P1$…",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "msgUnfollowingMany": {
+    "message": "正在取消追蹤 $P1$ 位使用者…",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "errUnfollowFailed": {
+    "message": "取消追蹤失敗"
+  },
+  "msgRateLimited": {
+    "message": "X 暫時拒絕了取消追蹤，已自動停止。已取消追蹤 $P1$ 位，其餘 $P2$ 位保留在名單裡，建議過幾小時再試。",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      },
+      "p2": {
+        "content": "$2"
+      }
+    }
+  },
+  "msgXSays": {
+    "message": "（X 提示：$P1$）",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "msgUnfollowStopped": {
+    "message": "已停止 · 取消追蹤了 $P1$ 位",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "msgUnfollowDone": {
+    "message": "已取消追蹤 $P1$ 位",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "msgUnfollowPartial": {
+    "message": "已取消追蹤 $P1$ 位 · $P2$ 位未成功，仍在名單中",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      },
+      "p2": {
+        "content": "$2"
+      }
+    }
+  },
+  "errOpenX": {
+    "message": "請先在目前視窗開啟 x.com，再開始檢測。"
+  },
+  "errPageTimeout": {
+    "message": "頁面載入逾時，請檢查網路後重試。"
+  },
+  "errNoResponse": {
+    "message": "頁面沒有回應，請重新整理 X 頁面後重試。"
+  },
+  "msgInterrupted": {
+    "message": "上次任務被中斷，可以重新檢測"
+  },
+  "errCancelled": {
+    "message": "任務已取消"
+  },
+  "durationSeconds": {
+    "message": "用時 $P1$ 秒",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "durationMinSec": {
+    "message": "用時 $P1$ 分 $P2$ 秒",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      },
+      "p2": {
+        "content": "$2"
+      }
+    }
+  },
+  "errNotFollowingPage": {
+    "message": "目前頁面不是你的追蹤名單，請重新開始檢測。"
+  }
+}

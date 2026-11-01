@@ -24,10 +24,12 @@ Keywords: X non follower checker, Twitter non follower checker, X unfollow check
 .
 ├── manifest.json
 ├── README.md
+├── _locales/
+│   ├── en/messages.json
+│   ├── zh_CN/messages.json
+│   └── zh_TW/messages.json
 ├── popup/
 │   └── popup.html
-├── panel/
-│   └── panel.html
 ├── assets/
 │   ├── icon16.png
 │   ├── icon32.png
@@ -44,13 +46,22 @@ Keywords: X non follower checker, Twitter non follower checker, X unfollow check
 ├── src/
 │   ├── background.js
 │   ├── content.js
+│   ├── panel-view.js
 │   └── ui.js
 ├── scripts/
 │   ├── package-extension.js
 │   └── validate-extension.js
-└── styles/
-    └── ui.css
+└── test/
+    └── mock-x/
 ```
+
+`src/panel-view.js` 是弹窗和页面浮层共用的界面，样式也写在里面。
+
+## 多语言
+
+插件界面跟随浏览器语言自动切换，目前有英文（`en`，默认）、简体中文（`zh_CN`）和繁体中文（`zh_TW`），文案在 `_locales/*/messages.json`。新增语言时复制一份 `en` 的文件翻译即可；`node scripts/validate-extension.js` 会检查各语言的 key 和占位符是否一致。
+
+识别“是否回关”不依赖界面文字，X 设成任何语言都能正常检测。
 
 ## 安装
 
@@ -64,11 +75,14 @@ Keywords: X non follower checker, Twitter non follower checker, X unfollow check
 1. 在 Chrome 中登录 `https://x.com`
 2. 点击插件图标
 3. 点击“开始检测”
-4. 插件会打开当前标签页的 `/{你的用户名}/following` 并滚动扫描关注列表
-5. 检测完成后，可点击头像、用户名或“主页”进入用户主页手动确认
-6. 如需批量处理，点击“一键取关”，确认不可恢复提示后插件会在当前关注列表页中逐个取消关注
+4. 插件会先打开你的主页读取关注总数，再进入 `/{你的用户名}/following` 滚动扫描；进度条显示进度和预计剩余时间
+5. 扫描过程中，未回关用户会实时出现在列表里；中途点“停止”会保留已扫描的结果
+6. 点击头像或名字可在新标签页打开对方主页；每一行都可以单独“取关”
+7. 如需批量处理，可以先用搜索框筛选，再点“全部取关”或“取关这 N 位”，确认后插件会在关注列表中逐个取消关注
 
-如果插件未能自动识别当前账号，可在输入框手动填写自己的 X 用户名。
+列表可以按“最近关注的在前”“最早关注的在前”或 A–Z 排序，选择会被记住。X 的关注列表本身按关注时间从新到旧排列，所以扫描顺序就是关注先后；X 不提供具体的关注日期。
+
+浮层可以拖动（双击标题栏还原位置）、收起成小胶囊，并会跟随 X 的深色/浅色主题。如果插件未能自动识别当前账号，点“切换账号”手动填写自己的 X 用户名。
 
 ## 本地校验
 
@@ -77,6 +91,17 @@ node scripts/validate-extension.js
 ```
 
 该命令会检查 `manifest.json`、HTML 引用路径和所有 JS 文件语法。
+
+## 模拟页面测试
+
+`test/mock-x/` 是一个模拟 X 关注列表的页面（日语界面、虚拟列表、分页加载、取关确认框），用来在不登录 X 的情况下测试扫描和取关逻辑：
+
+```bash
+python3 test/mock-x/server.py 8765 /path/to/old-content-dir
+node test/mock-x/run-headless.mjs "http://127.0.0.1:8765/home?total=1500" "window.__harness.directScan()"
+```
+
+`directScan()` 会返回用时、漏扫数量、误判数量。第二个参数目录下放一个旧版 `content.js` 时，可用 `?impl=old` 对比新旧版本。
 
 ## 本地打包
 
@@ -111,9 +136,10 @@ node scripts/package-extension.js
 - 不调用私有后端服务，依赖 X 网页 DOM 读取可见用户卡片。
 - 检测只使用当前 X 标签页，不会批量打开用户主页。
 - 检测时插件会进入关注列表页面，自动滚动收集你正在关注的用户。
-- 只有关注列表用户卡片上确认为 `Following / 正在关注`，且没有 `Follows you / 关注了你` 标记的人才会进入结果。
+- 只有卡片上有“正在关注”按钮（`data-testid` 以 `-unfollow` 结尾），且没有“关注了你”标记（`data-testid="userFollowIndicator"`）的人才会进入结果。两者都不依赖界面文字，所以任何 X 界面语言都能正确识别。
+- 扫描时读取页面上已渲染的全部卡片（不只是屏幕内的），然后滚动到最后一张卡片处；新卡片一出现就继续，不用固定时间等待。
 - 结果列表中的头像和用户名都可点击打开用户主页。
-- 一键取关会先显示确认弹窗；确认后会在当前关注列表页面滚动查找结果用户并点击取消关注，不会逐个打开个人主页。
+- 取关会在关注列表页面中查找目标用户并点击取消关注，不会逐个打开个人主页；会先跳到扫描时记录的大致位置再查找，每次取关之间有随机间隔。
 - 如果 X 页面在插件安装前已经打开，后台会自动补注入页面脚本，不需要手动刷新。
 
 X 网页 DOM 会变化，如 X 调整用户卡片或按钮结构，可能需要更新 `src/content.js` 中的选择器。

@@ -2,7 +2,9 @@
 
 ## Title
 
-X未回关检测 / X Non-Follower Checker
+X未回关检测 / X未回追蹤檢測 / X Non-Follower Checker
+
+The name and short description are localized through `_locales/*/messages.json` (`extName`, `extDescription`).
 
 ## Summary
 
@@ -14,10 +16,12 @@ X未回关检测是一款轻量级 Chrome 浏览器插件，适配新版 X（原
 
 主要功能：
 
-- 扫描 X / Twitter 关注列表
-- 筛选未显示 `Follows you / 关注了你` 标记的用户
-- 支持点击头像、用户名或主页按钮进入用户主页
-- 支持一键取关，执行前会显示不可恢复确认提示
+- 扫描 X / Twitter 关注列表，显示进度和预计剩余时间
+- 结果边扫描边显示，支持任意 X 界面语言
+- 支持搜索、排序，点击头像或名字进入用户主页
+- 支持单个取关，或筛选后批量取关，执行前会显示不可恢复确认提示
+- 浮层可拖动、可收起，跟随 X 深色/浅色主题
+- 界面支持简体中文、繁体中文和英文，跟随浏览器语言自动切换
 - 本地浏览器处理数据，不上传到服务器
 
 English:
@@ -27,9 +31,11 @@ X Non-Follower Checker is a lightweight Chrome extension for the modern X, forme
 Features:
 
 - Scan your X / Twitter following list
-- Detect accounts without the `Follows you` marker
-- Open user profiles for manual review
-- Optional batch unfollow with an irreversible confirmation prompt
+- Detect accounts without the "Follows you" marker, in any X interface language
+- Results stream in while the scan runs, with progress and time remaining
+- Search, sort, and open user profiles for manual review
+- Unfollow one account, or a filtered batch, with an irreversible confirmation prompt
+- Interface in English, Simplified Chinese, and Traditional Chinese, following your browser language
 - Local-only processing; no server upload
 
 ## Privacy Practices
