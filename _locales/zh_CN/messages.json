@@ -1,0 +1,420 @@
+{
+  "extName": {
+    "message": "X未回关检测"
+  },
+  "extDescription": {
+    "message": "扫描 X 关注列表，找出你关注了但没有回关你的人。数据只在本地浏览器处理。"
+  },
+  "switchAccount": {
+    "message": "切换账号"
+  },
+  "showInPage": {
+    "message": "在 X 页面中显示"
+  },
+  "collapse": {
+    "message": "收起"
+  },
+  "close": {
+    "message": "关闭"
+  },
+  "accountPlaceholder": {
+    "message": "你的 X 用户名，如 jack"
+  },
+  "check": {
+    "message": "检测"
+  },
+  "intro": {
+    "message": "找出你关注了、但没有回关你的人"
+  },
+  "statFollowing": {
+    "message": "关注"
+  },
+  "statNonFollowers": {
+    "message": "未回关"
+  },
+  "startScan": {
+    "message": "开始检测"
+  },
+  "rescan": {
+    "message": "重新检测"
+  },
+  "stop": {
+    "message": "停止"
+  },
+  "searchPlaceholder": {
+    "message": "搜索名称或 @用户名"
+  },
+  "search": {
+    "message": "搜索"
+  },
+  "sort": {
+    "message": "排序"
+  },
+  "sortRecent": {
+    "message": "最近关注的在前"
+  },
+  "sortOldest": {
+    "message": "最早关注的在前"
+  },
+  "sortHandle": {
+    "message": "A–Z"
+  },
+  "clear": {
+    "message": "清空"
+  },
+  "unfollowAll": {
+    "message": "全部取关"
+  },
+  "confirmUnfollow": {
+    "message": "确认取关"
+  },
+  "cancel": {
+    "message": "取消"
+  },
+  "statusStopped": {
+    "message": "已停止"
+  },
+  "statusInterrupted": {
+    "message": "检测中断"
+  },
+  "freshSubtitle": {
+    "message": "支持任意 X 界面语言"
+  },
+  "progressScanned": {
+    "message": "已扫描 $P1$",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "progressUnfollow": {
+    "message": "取关 $P1$ / $P2$",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      },
+      "p2": {
+        "content": "$2"
+      }
+    }
+  },
+  "keepTabOpen": {
+    "message": "请保持 X 页面打开"
+  },
+  "preparing": {
+    "message": "准备中…"
+  },
+  "footFiltered": {
+    "message": "显示 $P1$ / $P2$ 位",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      },
+      "p2": {
+        "content": "$2"
+      }
+    }
+  },
+  "footTotal": {
+    "message": "共 $P1$ 位未回关",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "unfollowFiltered": {
+    "message": "取关这 $P1$ 位",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "footUnfollowedSession": {
+    "message": "本次已取关 $P1$ 位",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "emptyNoMatchTitle": {
+    "message": "没有匹配的用户"
+  },
+  "emptyNoMatchBody": {
+    "message": "换个关键词试试。"
+  },
+  "emptyScanningTitle": {
+    "message": "正在扫描"
+  },
+  "emptyScanningBody": {
+    "message": "发现的未回关用户会实时出现在这里。"
+  },
+  "emptyAllFollowTitle": {
+    "message": "没有未回关的人"
+  },
+  "emptyAllFollowBody": {
+    "message": "扫描的 $P1$ 个关注都回关了你。",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "openProfile": {
+    "message": "打开 @$P1$ 的主页",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "rowUnfollow": {
+    "message": "取关"
+  },
+  "rowUnfollowing": {
+    "message": "取关中…"
+  },
+  "rowUnfollowTitle": {
+    "message": "取消关注 @$P1$",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "modalTitle": {
+    "message": "取关 $P1$ 位用户？",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "modalBody": {
+    "message": "插件会在你的关注列表里逐个取消关注，期间请保持 X 页面打开。取关后无法撤销，只能手动重新关注。"
+  },
+  "pillDefault": {
+    "message": "未回关检测"
+  },
+  "pillScanningPct": {
+    "message": "扫描中 $P1$% · $P2$ 位",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      },
+      "p2": {
+        "content": "$2"
+      }
+    }
+  },
+  "pillScanning": {
+    "message": "扫描中 · $P1$ 位",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "pillUnfollowing": {
+    "message": "取关中 $P1$/$P2$",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      },
+      "p2": {
+        "content": "$2"
+      }
+    }
+  },
+  "pillResults": {
+    "message": "未回关 $P1$ 位",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "errorReload": {
+    "message": "插件已更新或重新加载，请刷新 X 页面后再试。"
+  },
+  "etaSeconds": {
+    "message": "约剩 $P1$ 秒",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "etaMinSec": {
+    "message": "约剩 $P1$ 分 $P2$ 秒",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      },
+      "p2": {
+        "content": "$2"
+      }
+    }
+  },
+  "etaMinutes": {
+    "message": "约剩 $P1$ 分钟",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "msgIdle": {
+    "message": "打开 X 后点击开始检测"
+  },
+  "errBusy": {
+    "message": "已有任务正在运行"
+  },
+  "msgDetecting": {
+    "message": "正在识别当前登录账号…"
+  },
+  "errNoAccount": {
+    "message": "没能识别当前登录账号。点“切换账号”填写你的 X 用户名后重试。"
+  },
+  "msgOpeningFollowing": {
+    "message": "正在打开 @$P1$ 的关注列表…",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "msgScanning": {
+    "message": "正在扫描关注列表…"
+  },
+  "errReadFailed": {
+    "message": "读取关注列表失败"
+  },
+  "msgScanStopped": {
+    "message": "已停止 · 保留已扫描的 $P1$ 个关注",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "msgScanDone": {
+    "message": "扫描完成 · $P1$",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "msgCancelled": {
+    "message": "已取消"
+  },
+  "errNoAccountUnfollow": {
+    "message": "没能识别当前账号，请先重新检测。"
+  },
+  "msgUnfollowingOne": {
+    "message": "正在取关 @$P1$…",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "msgUnfollowingMany": {
+    "message": "正在取关 $P1$ 位用户…",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "errUnfollowFailed": {
+    "message": "取关失败"
+  },
+  "msgRateLimited": {
+    "message": "X 暂时拒绝了取关，已自动停止。已取关 $P1$ 位，其余 $P2$ 位保留在列表里，建议过几小时再试。",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      },
+      "p2": {
+        "content": "$2"
+      }
+    }
+  },
+  "msgXSays": {
+    "message": "（X 提示：$P1$）",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "msgUnfollowStopped": {
+    "message": "已停止 · 取关了 $P1$ 位",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "msgUnfollowDone": {
+    "message": "已取关 $P1$ 位",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "msgUnfollowPartial": {
+    "message": "已取关 $P1$ 位 · $P2$ 位未成功，仍在列表中",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      },
+      "p2": {
+        "content": "$2"
+      }
+    }
+  },
+  "errOpenX": {
+    "message": "请先在当前窗口打开 x.com，再开始检测。"
+  },
+  "errPageTimeout": {
+    "message": "页面加载超时，请检查网络后重试。"
+  },
+  "errNoResponse": {
+    "message": "页面没有响应，请刷新 X 页面后重试。"
+  },
+  "msgInterrupted": {
+    "message": "上次任务被中断，可以重新检测"
+  },
+  "errCancelled": {
+    "message": "任务已取消"
+  },
+  "durationSeconds": {
+    "message": "用时 $P1$ 秒",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      }
+    }
+  },
+  "durationMinSec": {
+    "message": "用时 $P1$ 分 $P2$ 秒",
+    "placeholders": {
+      "p1": {
+        "content": "$1"
+      },
+      "p2": {
+        "content": "$2"
+      }
+    }
+  },
+  "errNotFollowingPage": {
+    "message": "当前页面不是你的关注列表，请重新开始检测。"
+  }
+}
